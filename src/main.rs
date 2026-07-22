@@ -66,6 +66,7 @@ async fn main() {
                         }
                     },
                 );
+                draw_logs(&logs);
             }
 
             AppState::CreateGame => {

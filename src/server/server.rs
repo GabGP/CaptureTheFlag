@@ -2,7 +2,7 @@ use crate::{
     app_state::AppState,
     board::Board,
     game_state::GameState,
-    server::{lobby::draw_lobby, network_helpers::*},
+    server::{game_loop::process_game_tick, lobby::draw_lobby, server_utils::*},
 };
 
 use macroquad::{
@@ -70,14 +70,10 @@ pub fn server_running(
     app_state: &mut AppState,
     game_state: &mut GameState,
     board: &mut Option<Board>,
+    last_tick_time: &mut f64,
+    tick_counter: &mut i32,
 ) {
-    draw_text(
-        "Server running...",
-        20.0,
-        20.0,
-        20.0,
-        YELLOW,
-    );
+    draw_text("Server running...", 20.0, 20.0, 20.0, YELLOW);
 
     draw_lobby(
         tcp_listener,
@@ -90,6 +86,15 @@ pub fn server_running(
 
     // Handle Network Operations
     accept_new_connections(tcp_listener, active_clients, logs, game_state);
-    let disconnected_indices = process_client_messages(active_clients, logs, game_state);
+
+    // Pass the board to process_client_messages so it can update directions
+    let disconnected_indices = process_client_messages(active_clients, logs, game_state, board);
     cleanup_disconnected_clients(active_clients, disconnected_indices);
+
+    // Execute the Game Tick Loop if the game is actively running
+    if *game_state == GameState::Running {
+        if let Some(ref mut active_board) = *board {
+            process_game_tick(active_clients, active_board, last_tick_time, tick_counter);
+        }
+    }
 }

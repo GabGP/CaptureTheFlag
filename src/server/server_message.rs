@@ -22,7 +22,7 @@ pub struct Flag {
     pub carrier_id: Option<String>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct PlayerState {
     #[serde(rename = "playerId")]
     pub player_id: String,

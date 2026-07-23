@@ -1,6 +1,7 @@
 use crate::{
     app_state::AppState,
     board::Board,
+    config::*,
     game_state::GameState,
     server::server_message::{PlayerState, ServerMessage},
 };
@@ -40,7 +41,10 @@ pub fn draw_lobby(
         |ui| {
             ui.label(None, "--- SERVER LOBBY ---");
             ui.label(None, &format!("Status: {:?}", game_state));
-            ui.label(None, &format!("Connected Clients: {}", active_clients.len()));
+            ui.label(
+                None,
+                &format!("Connected Clients: {}", active_clients.len()),
+            );
 
             // Option 1: START GAME (Only enabled while in WAITING state)
             if *game_state == GameState::Waiting {
@@ -49,7 +53,7 @@ pub fn draw_lobby(
                     *game_state = GameState::Starting;
 
                     // Generate Board with Flag and Obstacles
-                    let new_board = Board::generate();
+                    let mut new_board = Board::generate();
 
                     // Assign starting positions for connected players
                     let mut initial_players: Vec<PlayerState> = Vec::new();
@@ -60,9 +64,9 @@ pub fn draw_lobby(
                         initial_players.push(PlayerState {
                             player_id: p_id,
                             name: format!("Player {}", index + 1),
-                            row: -1, 
+                            row: -1,
                             column: start_col,
-                            direction: "DOWN".to_string(), 
+                            direction: "DOWN".to_string(),
                             inside_board: false,
                             has_flag: false,
                             protected: false,
@@ -74,17 +78,20 @@ pub fn draw_lobby(
                         "GAME-001",
                         new_board.rows,
                         new_board.columns,
-                        200,  
-                        1000, 
+                        MOVEMENT_INTERVAL_MS,
+                        PROTECTION_TIME_MS,
                         new_board.obstacles.clone(),
                         new_board.flag.clone(),
-                        initial_players,
+                        initial_players.clone(),
                     );
 
                     // Broadcast GAME_STARTED to all connected clients
                     for stream in active_clients.iter_mut() {
                         let _ = stream.write_all(game_started_msg.as_bytes());
                     }
+
+                    // Save the generated players into the board
+                    new_board.players = initial_players;
 
                     *board = Some(new_board);
                     *game_state = GameState::Running;

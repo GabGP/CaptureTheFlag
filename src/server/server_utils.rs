@@ -1,5 +1,5 @@
 use crate::{
-    client::client_message::ClientMessage, game_state::GameState,
+    board::Board, client::client_message::ClientMessage, game_state::GameState,
     server::server_message::ServerMessage,
 };
 
@@ -9,7 +9,7 @@ use std::{
 };
 
 // ============================================================================
-// NETWORK HELPERS
+// SERVER UTILITIES
 // ============================================================================
 
 /// Function to accept new incoming connections from clients
@@ -40,6 +40,7 @@ pub fn process_client_messages(
     active_clients: &mut [TcpStream],
     logs: &mut Vec<String>,
     game_state: &GameState,
+    board: &mut Option<Board>,
 ) -> Vec<usize> {
     let mut disconnected_indices = Vec::new();
 
@@ -77,8 +78,25 @@ pub fn process_client_messages(
                                 let _ = stream.write_all(rejection.as_bytes());
                             }
                         }
-                        Ok(ClientMessage::ChangeDirection { direction, .. }) => {
-                            logs.push(format!("[INFO] Direction change: {}", direction));
+                        Ok(ClientMessage::ChangeDirection {
+                            direction,
+                            player_id,
+                            ..
+                        }) => {
+                            // Find the player in the board and update their direction
+                            if let Some(active_board) = board {
+                                if let Some(player) = active_board
+                                    .players
+                                    .iter_mut()
+                                    .find(|p| p.player_id == player_id)
+                                {
+                                    player.direction = direction.clone();
+                                    logs.push(format!(
+                                        "[INFO] {} changed direction to {}",
+                                        player_id, direction
+                                    ));
+                                }
+                            }
                         }
                         Ok(ClientMessage::Leave { .. }) => {
                             logs.push(format!("[INFO] Client {} sent LEAVE.", i + 1));
@@ -99,6 +117,26 @@ pub fn process_client_messages(
     }
 
     return disconnected_indices;
+}
+
+/// Broadcasts the current GAME_STATE to all connected clients and cleans up dropped connections
+pub fn broadcast_game_state(active_clients: &mut Vec<TcpStream>, board: &Board, tick_counter: i32) {
+    let game_state_msg = ServerMessage::game_state(
+        "GAME-001",
+        tick_counter,
+        board.players.clone(),
+        board.flag.clone(),
+    );
+
+    let mut disconnected_indices = Vec::new();
+    for (i, stream) in active_clients.iter_mut().enumerate() {
+        if stream.write_all(game_state_msg.as_bytes()).is_err() {
+            disconnected_indices.push(i);
+        }
+    }
+
+    // Cleanup connections that dropped during the broadcast
+    cleanup_disconnected_clients(active_clients, disconnected_indices);
 }
 
 /// Function to clean up disconnected clients from the active_clients vector

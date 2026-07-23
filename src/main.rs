@@ -1,10 +1,10 @@
 mod app_state;
 mod board;
 mod client;
+mod config;
 mod game_state;
 mod logs;
 mod server;
-mod config;
 
 use crate::{
     client::client::{client_running, client_start},
@@ -47,6 +47,8 @@ async fn main() {
     // Server State Variables
     let mut tcp_listener: Option<TcpListener> = None;
     let mut active_clients: Vec<TcpStream> = Vec::new();
+    let mut last_tick_time = 0.0;
+    let mut tick_counter = 0;
 
     // Shared Variables
     let mut board: Option<Board> = None;
@@ -73,7 +75,6 @@ async fn main() {
                         }
                     },
                 );
-                draw_logs(&logs);
             }
 
             AppState::CreateGame => {
@@ -84,7 +85,6 @@ async fn main() {
                     &mut logs,
                     &mut app_state,
                 );
-                draw_logs(&logs);
             }
 
             AppState::JoinGame => {
@@ -96,7 +96,6 @@ async fn main() {
                     &mut logs,
                     &mut app_state,
                 );
-                draw_logs(&logs);
             }
 
             AppState::ClientRunning => {
@@ -109,7 +108,6 @@ async fn main() {
                     &mut buffer,
                     &mut direction_sent,
                 );
-                draw_logs(&logs);
             }
 
             AppState::ServerRunning => {
@@ -120,11 +118,13 @@ async fn main() {
                     &mut app_state,
                     &mut game_state,
                     &mut board,
+                    &mut last_tick_time,
+                    &mut tick_counter,
                 );
-                draw_logs(&logs);
             }
         }
 
+        draw_logs(&logs);
         next_frame().await
     }
 }

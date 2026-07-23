@@ -1,6 +1,6 @@
 use crate::{
     config::*,
-    server::server_message::{Flag, Obstacle},
+    server::server_message::{Flag, Obstacle, PlayerState},
 };
 use macroquad::rand::gen_range;
 
@@ -13,6 +13,7 @@ pub struct Board {
     pub columns: i32,
     pub obstacles: Vec<Obstacle>,
     pub flag: Flag,
+    pub players: Vec<PlayerState>,
 }
 
 impl Board {
@@ -67,6 +68,7 @@ impl Board {
             columns,
             obstacles,
             flag,
+            players: Vec::new(),
         }
     }
 }

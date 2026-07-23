@@ -8,6 +8,14 @@ pub const OBSTACLE_PERCENTAGE: f32 = 0.10; // 10% of total cells
 pub const CENTRAL_AREA_PERCENTAGE: f32 = 0.30; // 30% center area
 
 // ============================================================================
+// GAME SERVER CONFIGURATION
+// ============================================================================
+
+pub const MOVEMENT_INTERVAL_MS: i32 = 200;
+pub const MOVEMENT_INTERVAL: f64 = (MOVEMENT_INTERVAL_MS as f32 / 1000.0) as f64;
+pub const PROTECTION_TIME_MS: i32 = 1000;
+
+// ============================================================================
 // LOGS CONFIGURATION
 // ============================================================================
 

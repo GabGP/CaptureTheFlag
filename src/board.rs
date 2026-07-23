@@ -1,14 +1,8 @@
-use crate::server::server_message::{Flag, Obstacle};
+use crate::{
+    config::*,
+    server::server_message::{Flag, Obstacle},
+};
 use macroquad::rand::gen_range;
-
-// ============================================================================
-// BOARD CONFIGURATION
-// ============================================================================
-
-const DEFAULT_ROWS: i32 = 20;
-const DEFAULT_COLUMNS: i32 = 20;
-const OBSTACLE_PERCENTAGE: f32 = 0.10; // 10% of total cells
-const CENTRAL_AREA_PERCENTAGE: f32 = 0.30; // 30% center area
 
 // ============================================================================
 // BOARD & GENERATION LOGIC
@@ -24,8 +18,8 @@ pub struct Board {
 impl Board {
     /// Generates a new board following the default specification parameters.
     pub fn generate() -> Self {
-        let rows = DEFAULT_ROWS;
-        let columns = DEFAULT_COLUMNS;
+        let rows = BOARD_ROWS;
+        let columns = BOARD_COLUMNS;
         let obstacle_percentage = OBSTACLE_PERCENTAGE;
         let central_area_percentage = CENTRAL_AREA_PERCENTAGE;
 

@@ -4,6 +4,7 @@ mod client;
 mod game_state;
 mod logs;
 mod server;
+mod config;
 
 use crate::{
     client::client::{client_running, client_start},

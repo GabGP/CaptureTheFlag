@@ -1,6 +1,9 @@
 use crate::{
     app_state::AppState,
-    client::{client_message::ClientMessage, client_utils::process_server_messages},
+    client::{
+        client_message::ClientMessage,
+        client_utils::{handle_client_input, process_server_messages},
+    },
 };
 
 use macroquad::{
@@ -45,13 +48,13 @@ pub fn client_start(
                         // Must be non-blocking so Macroquad doesn't freeze
                         stream.set_nonblocking(true).unwrap();
                         *tcp_stream = Some(stream);
-                        logs.push("[SUCCESS] 1. Connected to the server.".to_string());
+                        logs.push("[SUCCESS] Connected to the server.".to_string());
 
                         let join_msg = ClientMessage::join(&name_input);
 
                         if let Some(ref mut active_stream) = *tcp_stream {
                             active_stream.write_all(join_msg.as_bytes()).unwrap();
-                            logs.push("[SUCCESS] 2. Sent JOIN message.".to_string());
+                            logs.push("[SUCCESS] Sent JOIN message.".to_string());
                         }
                         *app_state = AppState::ClientRunning;
                     }
@@ -77,7 +80,7 @@ pub fn client_running(
     current_player_id: &mut String,
     current_game_id: &mut String,
     buffer: &mut String,
-    direction_sent: &mut bool,
+    game_started: &mut bool,
 ) {
     draw_text(
         "Press ESCAPE to send LEAVE and close connection.",
@@ -88,16 +91,14 @@ pub fn client_running(
     );
 
     // Handle Client Input
-    if is_key_pressed(KeyCode::Escape) {
-        if let Some(mut stream) = tcp_stream.take() {
-            if !current_player_id.is_empty() && !current_game_id.is_empty() {
-                let leave_msg = ClientMessage::leave(&current_game_id, &current_player_id);
-                let _ = stream.write_all(leave_msg.as_bytes());
-            }
-            logs.push("[SUCCESS] 7. Correct closure of the connection.".to_string());
-        }
-        *app_state = AppState::MainMenu;
-    }
+    handle_client_input(
+        tcp_stream,
+        logs,
+        app_state,
+        current_player_id,
+        current_game_id,
+        game_started,
+    );
 
     // Process Incoming TCP Data
     process_server_messages(
@@ -106,6 +107,6 @@ pub fn client_running(
         current_player_id,
         current_game_id,
         buffer,
-        direction_sent,
+        game_started,
     );
 }

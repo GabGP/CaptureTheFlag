@@ -42,7 +42,6 @@ async fn main() {
     let mut buffer = String::new();
     let mut current_player_id = String::new();
     let mut current_game_id = String::new();
-    let mut direction_sent = false;
 
     // Server State Variables
     let mut tcp_listener: Option<TcpListener> = None;
@@ -53,6 +52,7 @@ async fn main() {
     // Shared Variables
     let mut board: Option<Board> = None;
     let mut logs: Vec<String> = Vec::new();
+    let mut game_started = false;
 
     loop {
         clear_background(BLACK);
@@ -106,7 +106,7 @@ async fn main() {
                     &mut current_player_id,
                     &mut current_game_id,
                     &mut buffer,
-                    &mut direction_sent,
+                    &mut game_started,
                 );
             }
 

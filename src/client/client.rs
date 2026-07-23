@@ -1,4 +1,7 @@
-use crate::{app_state::AppState, client::client_message::ClientMessage};
+use crate::{
+    app_state::AppState, client::client_message::ClientMessage,
+    server::server_message::ServerMessage,
+};
 
 use macroquad::{
     prelude::*,
@@ -6,12 +9,11 @@ use macroquad::{
     window::{screen_height, screen_width},
 };
 
-use serde_json::Value;
-
 use std::{
     io::{ErrorKind, Read, Write},
     net::TcpStream,
 };
+
 // ============================================================================
 // CLIENT
 // ============================================================================
@@ -109,25 +111,25 @@ pub fn client_running(
                     let message_str = buffer[..pos].to_string();
                     *buffer = buffer[pos + 1..].to_string();
 
-                    if let Ok(parsed_json) = serde_json::from_str::<Value>(&message_str) {
-                        if let Some(msg_type) = parsed_json.get("type").and_then(|t| t.as_str()) {
-                            match msg_type {
-                                "JOIN_ACCEPTED" => {
-                                    logs.push(
-                                        "[SUCCESS] 3. Received JOIN_ACCEPTED message.".to_string(),
-                                    );
-                                    *current_player_id =
-                                        parsed_json["playerId"].as_str().unwrap().to_string();
-                                    *current_game_id =
-                                        parsed_json["gameId"].as_str().unwrap().to_string();
-                                }
-                                "GAME_STATE" => {
-                                    logs.push("[SUCCESS] 5. Received GAME_STATE message.".to_string());
-                                }
-                                _ => {
-                                    logs.push(format!("[SUCCESS] {}", msg_type));
-                                }
-                            }
+                    // Attempt to parse the incoming JSON as a ServerMessage
+                    match serde_json::from_str::<ServerMessage>(&message_str) {
+                        Ok(ServerMessage::JoinAccepted {
+                            player_id, game_id, ..
+                        }) => {
+                            logs.push("[SUCCESS] 3. Received JOIN_ACCEPTED message.".to_string());
+                            // Directly assign the strings extracted from the enum variant
+                            *current_player_id = player_id;
+                            *current_game_id = game_id;
+                        }
+                        Ok(ServerMessage::GameState { .. }) => {
+                            logs.push("[SUCCESS] 5. Received GAME_STATE message.".to_string());
+                        }
+                        Ok(_) => {
+                            // Placeholder to handle other messages
+                            logs.push("[SUCCESS] Received other message type.".to_string());
+                        }
+                        Err(e) => {
+                            logs.push(format!("[WARN] Failed to parse message: {}", e));
                         }
                     }
                 }

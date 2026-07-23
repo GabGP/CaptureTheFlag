@@ -1,5 +1,7 @@
 mod app_state;
+mod board;
 mod client;
+mod game_state;
 mod logs;
 mod server;
 
@@ -9,6 +11,8 @@ use crate::{
 };
 
 use app_state::AppState;
+use board::Board;
+use game_state::GameState;
 use logs::draw_logs;
 
 use macroquad::{
@@ -24,7 +28,8 @@ use std::net::{TcpListener, TcpStream};
 
 #[macroquad::main("Capture The Flag")]
 async fn main() {
-    let mut state = AppState::MainMenu;
+    let mut app_state = AppState::MainMenu;
+    let mut game_state = GameState::Waiting;
 
     // UI Input fields
     let mut ip_input = "127.0.0.1".to_string();
@@ -42,13 +47,14 @@ async fn main() {
     let mut tcp_listener: Option<TcpListener> = None;
     let mut active_clients: Vec<TcpStream> = Vec::new();
 
-    // Shared UI Logs
+    // Shared Variables
+    let mut board: Option<Board> = None;
     let mut logs: Vec<String> = Vec::new();
 
     loop {
         clear_background(BLACK);
 
-        match state {
+        match app_state {
             AppState::MainMenu => {
                 let center_x = screen_width() / 2.0;
                 let center_y = screen_height() / 2.0;
@@ -59,10 +65,10 @@ async fn main() {
                     vec2(200., 150.),
                     |ui| {
                         if ui.button(vec2(50., 30.), "CREATE GAME") {
-                            state = AppState::CreateGame;
+                            app_state = AppState::CreateGame;
                         }
                         if ui.button(vec2(55., 80.), "JOIN GAME") {
-                            state = AppState::JoinGame;
+                            app_state = AppState::JoinGame;
                         }
                     },
                 );
@@ -75,7 +81,7 @@ async fn main() {
                     &mut port_input,
                     &mut tcp_listener,
                     &mut logs,
-                    &mut state,
+                    &mut app_state,
                 );
                 draw_logs(&logs);
             }
@@ -87,7 +93,7 @@ async fn main() {
                     &mut name_input,
                     &mut tcp_stream,
                     &mut logs,
-                    &mut state,
+                    &mut app_state,
                 );
                 draw_logs(&logs);
             }
@@ -96,7 +102,7 @@ async fn main() {
                 client_running(
                     &mut tcp_stream,
                     &mut logs,
-                    &mut state,
+                    &mut app_state,
                     &mut current_player_id,
                     &mut current_game_id,
                     &mut buffer,
@@ -110,7 +116,9 @@ async fn main() {
                     &mut tcp_listener,
                     &mut active_clients,
                     &mut logs,
-                    &mut state,
+                    &mut app_state,
+                    &mut game_state,
+                    &mut board,
                 );
                 draw_logs(&logs);
             }

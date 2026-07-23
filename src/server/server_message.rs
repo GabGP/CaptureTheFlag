@@ -7,13 +7,13 @@ const PROTOCOL_VERSION: &str = "1.0";
 // SERVER STRUCTURES
 // ============================================================================
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct Obstacle {
     pub row: i32,
     pub column: i32,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct Flag {
     pub row: i32,
     pub column: i32,

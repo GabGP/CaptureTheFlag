@@ -25,7 +25,7 @@ pub fn client_start(
     name_input: &mut String,
     tcp_stream: &mut Option<TcpStream>,
     logs: &mut Vec<String>,
-    state: &mut AppState,
+    app_state: &mut AppState,
 ) {
     let center_x = screen_width() / 2.0;
     let center_y = screen_height() / 2.0;
@@ -55,13 +55,13 @@ pub fn client_start(
                             active_stream.write_all(join_msg.as_bytes()).unwrap();
                             logs.push("[SUCCESS] 2. Sent JOIN message.".to_string());
                         }
-                        *state = AppState::ClientRunning;
+                        *app_state = AppState::ClientRunning;
                     }
                     Err(e) => logs.push(format!("[ERROR] {}", e)),
                 }
             }
             if ui.button(None, "BACK") {
-                *state = AppState::MainMenu;
+                *app_state = AppState::MainMenu;
             }
         },
     );
@@ -71,7 +71,7 @@ pub fn client_start(
 pub fn client_running(
     tcp_stream: &mut Option<TcpStream>,
     logs: &mut Vec<String>,
-    state: &mut AppState,
+    app_state: &mut AppState,
     current_player_id: &mut String,
     current_game_id: &mut String,
     buffer: &mut String,
@@ -93,7 +93,7 @@ pub fn client_running(
             }
             logs.push("[SUCCESS] 7. Correct closure of the connection.".to_string());
         }
-        *state = AppState::MainMenu;
+        *app_state = AppState::MainMenu;
     }
 
     // Process Incoming TCP Data

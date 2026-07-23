@@ -1,6 +1,6 @@
 use crate::{
     app_state::AppState,
-    client::{client_message::ClientMessage, network_helpers::process_server_messages},
+    client::{client_message::ClientMessage, client_utils::process_server_messages},
 };
 
 use macroquad::{

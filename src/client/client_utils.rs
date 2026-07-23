@@ -9,7 +9,7 @@ use std::{
 };
 
 // ============================================================================
-// CLIENT NETWORK HELPERS
+// CLIENT UTILITIES
 // ============================================================================
 
 /// Function to process incoming messages from the server and manage automated replies

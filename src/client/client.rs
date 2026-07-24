@@ -1,5 +1,5 @@
 use crate::{
-    app_state::AppState,
+    states::app_state::AppState,
     client::{
         client_message::ClientMessage,
         client_utils::{handle_client_input, process_server_messages},

@@ -1,6 +1,6 @@
 use crate::{
-    board::Board, client::client_message::ClientMessage, game_state::GameState,
-    server::server_message::ServerMessage,
+    client::client_message::ClientMessage, game::board::Board,
+    server::server_message::ServerMessage, states::game_state::GameState,
 };
 
 use std::{

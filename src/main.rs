@@ -1,20 +1,17 @@
-mod app_state;
-mod board;
 mod client;
 mod config;
-mod game_state;
-mod logs;
+mod game;
+mod gui;
 mod server;
+mod states;
 
 use crate::{
     client::client::{client_running, client_start},
+    game::board::Board,
+    gui::logs::draw_logs,
     server::server::{server_running, server_start},
+    states::{app_state::AppState, game_state::GameState},
 };
-
-use app_state::AppState;
-use board::Board;
-use game_state::GameState;
-use logs::draw_logs;
 
 use macroquad::{
     prelude::*,

@@ -1,9 +1,8 @@
 use crate::{
-    app_state::AppState,
-    board::Board,
     config::*,
-    game_state::GameState,
+    game::board::Board,
     server::server_message::{PlayerState, ServerMessage},
+    states::{app_state::AppState, game_state::GameState},
 };
 
 use macroquad::{

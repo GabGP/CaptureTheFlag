@@ -1,6 +1,6 @@
 use crate::{
-    app_state::AppState, client::client_message::ClientMessage,
-    server::server_message::ServerMessage,
+    client::client_message::ClientMessage, server::server_message::ServerMessage,
+    states::app_state::AppState,
 };
 
 use macroquad::prelude::*;

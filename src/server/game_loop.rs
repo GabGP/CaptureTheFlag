@@ -1,4 +1,4 @@
-use crate::{board::Board, config::*, server::server_utils::*};
+use crate::{config::*, game::board::Board, server::server_utils::*};
 use macroquad::time::get_time;
 use std::net::TcpStream;
 

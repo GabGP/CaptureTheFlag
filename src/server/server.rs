@@ -1,8 +1,7 @@
 use crate::{
-    app_state::AppState,
-    board::Board,
-    game_state::GameState,
+    game::board::Board,
     server::{game_loop::process_game_tick, lobby::draw_lobby, server_utils::*},
+    states::{app_state::AppState, game_state::GameState},
 };
 
 use macroquad::{

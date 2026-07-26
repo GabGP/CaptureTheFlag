@@ -1,24 +1,28 @@
 mod client;
 mod config;
-mod game;
 mod gui;
+mod protocol;
 mod server;
 mod states;
+mod types;
 
 use crate::{
-    client::client::{client_running, client_start},
-    game::board::Board,
+    client::{
+        client::GameClient,
+        client_ui::{client_running, client_start},
+    },
     gui::logs::draw_logs,
-    server::server::{server_running, server_start},
-    states::{app_state::AppState, game_state::GameState},
+    server::{
+        server::GameServer,
+        server_ui::{server_running, server_start},
+    },
+    states::app_state::AppState,
 };
 
 use macroquad::{
     prelude::*,
     ui::{hash, root_ui},
 };
-
-use std::net::{TcpListener, TcpStream};
 
 // ============================================================================
 // MAIN APPLICATION
@@ -27,29 +31,20 @@ use std::net::{TcpListener, TcpStream};
 #[macroquad::main("Capture The Flag")]
 async fn main() {
     let mut app_state = AppState::MainMenu;
-    let mut game_state = GameState::Waiting;
 
     // UI Input fields
     let mut ip_input = "127.0.0.1".to_string();
     let mut port_input = "5000".to_string();
+    let mut discovery_port_input = "5001".to_string();
+    let mut server_name_input = "Game Server".to_string();
     let mut name_input = "MacroquadTest".to_string();
 
-    // Client State Variables
-    let mut tcp_stream: Option<TcpStream> = None;
-    let mut buffer = String::new();
-    let mut current_player_id = String::new();
-    let mut current_game_id = String::new();
+    // Server and Client state wrappers
+    let mut game_server: Option<GameServer> = None;
+    let mut game_client: Option<GameClient> = None;
 
-    // Server State Variables
-    let mut tcp_listener: Option<TcpListener> = None;
-    let mut active_clients: Vec<TcpStream> = Vec::new();
-    let mut last_tick_time = 0.0;
-    let mut tick_counter = 0;
-
-    // Shared Variables
-    let mut board: Option<Board> = None;
+    // Shared Logs
     let mut logs: Vec<String> = Vec::new();
-    let mut game_started = false;
 
     loop {
         clear_background(BLACK);
@@ -76,9 +71,10 @@ async fn main() {
 
             AppState::CreateGame => {
                 server_start(
-                    &mut ip_input,
                     &mut port_input,
-                    &mut tcp_listener,
+                    &mut discovery_port_input,
+                    &mut server_name_input,
+                    &mut game_server,
                     &mut logs,
                     &mut app_state,
                 );
@@ -89,35 +85,18 @@ async fn main() {
                     &mut ip_input,
                     &mut port_input,
                     &mut name_input,
-                    &mut tcp_stream,
+                    &mut game_client,
                     &mut logs,
                     &mut app_state,
                 );
             }
 
             AppState::ClientRunning => {
-                client_running(
-                    &mut tcp_stream,
-                    &mut logs,
-                    &mut app_state,
-                    &mut current_player_id,
-                    &mut current_game_id,
-                    &mut buffer,
-                    &mut game_started,
-                );
+                client_running(&mut game_client, &mut app_state, &mut logs);
             }
 
             AppState::ServerRunning => {
-                server_running(
-                    &mut tcp_listener,
-                    &mut active_clients,
-                    &mut logs,
-                    &mut app_state,
-                    &mut game_state,
-                    &mut board,
-                    &mut last_tick_time,
-                    &mut tick_counter,
-                );
+                server_running(&mut game_server, &mut app_state, &mut logs);
             }
         }
 

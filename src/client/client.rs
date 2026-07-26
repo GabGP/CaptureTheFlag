@@ -1,112 +1,94 @@
-use crate::{
-    states::app_state::AppState,
-    client::{
-        client_message::ClientMessage,
-        client_utils::{handle_client_input, process_server_messages},
-    },
-};
+use crate::{client::client_utils::*, types::*};
 
-use macroquad::{
-    prelude::*,
-    ui::{hash, root_ui},
-    window::{screen_height, screen_width},
-};
-
-use std::{io::Write, net::TcpStream};
+use std::collections::HashMap;
+use std::io;
+use std::sync::mpsc::{Sender, channel};
+use std::sync::{Arc, Mutex};
+use std::thread;
 
 // ============================================================================
-// CLIENT INITIALIZATION
+// CLIENT
 // ============================================================================
 
-/// Function to start the client
-pub fn client_start(
-    ip_input: &mut String,
-    port_input: &mut String,
-    name_input: &mut String,
-    tcp_stream: &mut Option<TcpStream>,
-    logs: &mut Vec<String>,
-    app_state: &mut AppState,
-) {
-    let center_x = screen_width() / 2.0;
-    let center_y = screen_height() / 2.0;
-
-    root_ui().window(
-        hash!(),
-        vec2(center_x - 125., center_y - 120.),
-        vec2(250., 240.),
-        |ui| {
-            ui.label(None, "--- CLIENT CONFIGURATION ---");
-            ui.input_text(hash!(), "IP", ip_input);
-            ui.input_text(hash!(), "PORT", port_input);
-            ui.input_text(hash!(), "NAME", name_input);
-
-            if ui.button(None, "CONNECT TO SERVER") {
-                let server_addr = format!("{}:{}", ip_input, port_input);
-
-                match TcpStream::connect(&server_addr) {
-                    Ok(stream) => {
-                        // Must be non-blocking so Macroquad doesn't freeze
-                        stream.set_nonblocking(true).unwrap();
-                        *tcp_stream = Some(stream);
-                        logs.push("[SUCCESS] Connected to the server.".to_string());
-
-                        let join_msg = ClientMessage::join(&name_input);
-
-                        if let Some(ref mut active_stream) = *tcp_stream {
-                            active_stream.write_all(join_msg.as_bytes()).unwrap();
-                            logs.push("[SUCCESS] Sent JOIN message.".to_string());
-                        }
-                        *app_state = AppState::ClientRunning;
-                    }
-                    Err(e) => logs.push(format!("[ERROR] {}", e)),
-                }
-            }
-            if ui.button(None, "BACK") {
-                *app_state = AppState::MainMenu;
-            }
-        },
-    );
+pub struct GameClient {
+    cmd_tx: Sender<ClientCommand>,
+    pub state_arc: Arc<Mutex<ClientStateSnapshot>>,
+    pub active_direction: Direction,
 }
 
-// ============================================================================
-// CLIENT MAIN RUNNING LOOP
-// ============================================================================
+impl GameClient {
+    /// Function to establish connection with the server and initialize client state
+    pub fn connect(target_ip: String, target_port: u16, player_name: String) -> io::Result<Self> {
+        let (cmd_tx, cmd_rx) = channel::<ClientCommand>();
 
-/// Function to handle the running client
-pub fn client_running(
-    tcp_stream: &mut Option<TcpStream>,
-    logs: &mut Vec<String>,
-    app_state: &mut AppState,
-    current_player_id: &mut String,
-    current_game_id: &mut String,
-    buffer: &mut String,
-    game_started: &mut bool,
-) {
-    draw_text(
-        "Press ESCAPE to send LEAVE and close connection.",
-        20.0,
-        20.0,
-        20.0,
-        YELLOW,
-    );
+        let initial_snap = ClientStateSnapshot {
+            connected: false,
+            player_id: 0,
+            game_id: 0,
+            game_state: GameState::Waiting,
+            lobby_players: Vec::new(),
+            countdown_seconds: 0,
+            config: GameConfig::default(),
+            flag_status: FlagStatus::Available,
+            flag_carrier_id: 0,
+            flag_x: 0.0,
+            flag_y: 0.0,
+            tick: 0,
+            players: Vec::new(),
+            player_names: HashMap::new(),
+            winner_id: None,
+            winner_name: String::new(),
+            error_msg: None,
+            logs: vec![format!("Connecting to {}:{}...", target_ip, target_port)],
+        };
 
-    // Handle Client Input
-    handle_client_input(
-        tcp_stream,
-        logs,
-        app_state,
-        current_player_id,
-        current_game_id,
-        game_started,
-    );
+        let state_arc = Arc::new(Mutex::new(initial_snap));
+        let state_writer = state_arc.clone();
 
-    // Process Incoming TCP Data
-    process_server_messages(
-        tcp_stream,
-        logs,
-        current_player_id,
-        current_game_id,
-        buffer,
-        game_started,
-    );
+        thread::spawn(move || {
+            if let Err(e) = super::client_loop::run_client_loop(
+                target_ip,
+                target_port,
+                player_name,
+                cmd_rx,
+                state_writer.clone(),
+            ) {
+                eprintln!("[CLIENT ERROR] {}", e);
+                let mut snap = state_writer.lock().unwrap();
+                if snap.error_msg.is_none() {
+                    snap.error_msg = Some(format!("{}", e));
+                }
+                snap.connected = false;
+            }
+        });
+
+        Ok(Self {
+            cmd_tx,
+            state_arc,
+            active_direction: Direction::None,
+        })
+    }
+
+    /// Function to update and send the current player movement direction
+    pub fn set_direction(&mut self, dir: Direction) {
+        if self.active_direction != dir {
+            self.active_direction = dir;
+            let _ = self.cmd_tx.send(ClientCommand::SendInput(dir));
+        }
+    }
+
+    /// Function to send an interaction command to the server
+    pub fn send_interact(&self) {
+        let _ = self.cmd_tx.send(ClientCommand::SendInteract);
+    }
+
+    /// Function to send a leave command and disconnect from the server
+    pub fn leave(&self) {
+        let _ = self.cmd_tx.send(ClientCommand::Leave);
+    }
+
+    /// Function to retrieve a clone of the current client state snapshot
+    pub fn get_snapshot(&self) -> ClientStateSnapshot {
+        self.state_arc.lock().unwrap().clone()
+    }
 }

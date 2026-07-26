@@ -1,99 +1,115 @@
-use crate::{
-    game::board::Board,
-    server::{game_loop::process_game_tick, lobby::draw_lobby, server_utils::*},
-    states::{app_state::AppState, game_state::GameState},
-};
-
-use macroquad::{
-    prelude::*,
-    ui::{hash, root_ui},
-    window::{screen_height, screen_width},
-};
-
-use std::net::{TcpListener, TcpStream};
+use crate::{server::server_utils::*, types::*};
+use std::io;
+use std::net::{TcpListener, UdpSocket};
+use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::{Arc, Mutex};
+use std::thread;
 
 // ============================================================================
-// SERVER INITIALIZATION
+// SERVER
 // ============================================================================
 
-/// Function to start the server
-pub fn server_start(
-    ip_input: &mut String,
-    port_input: &mut String,
-    tcp_listener: &mut Option<TcpListener>,
-    logs: &mut Vec<String>,
-    app_state: &mut AppState,
-) {
-    let center_x = screen_width() / 2.0;
-    let center_y = screen_height() / 2.0;
-
-    root_ui().window(
-        hash!(),
-        vec2(center_x - 125., center_y - 100.),
-        vec2(250., 200.),
-        |ui| {
-            ui.label(None, "--- SERVER CONFIGURATION ---");
-            ui.input_text(hash!(), "IP", ip_input);
-            ui.input_text(hash!(), "PORT", port_input);
-
-            if ui.button(None, "START SERVER") {
-                let bind_addr = format!("{}:{}", ip_input, port_input);
-
-                match TcpListener::bind(&bind_addr) {
-                    Ok(listener) => {
-                        // Must be non-blocking so Macroquad doesn't freeze
-                        listener.set_nonblocking(true).unwrap();
-                        *tcp_listener = Some(listener);
-                        logs.push(format!("[SUCCESS] Server started on {}", bind_addr));
-                        *app_state = AppState::ServerRunning;
-                    }
-                    Err(e) => logs.push(format!("[ERROR] {}", e)),
-                }
-            }
-            if ui.button(None, "BACK") {
-                *app_state = AppState::MainMenu;
-            }
-        },
-    );
+pub struct GameServer {
+    pub config: GameConfig,
+    cmd_tx: Sender<ServerCommand>,
+    snapshot_rx: Receiver<ServerStateSnapshot>,
+    pub latest_snapshot: Arc<Mutex<ServerStateSnapshot>>,
 }
 
-// ============================================================================
-// SERVER MAIN RUNNING LOOP
-// ============================================================================
+impl GameServer {
+    /// Function to initialize and start the game server background thread
+    pub fn start(config: GameConfig, server_name: String) -> io::Result<Self> {
+        let (cmd_tx, cmd_rx) = channel::<ServerCommand>();
+        let (snap_tx, snap_rx) = channel::<ServerStateSnapshot>();
 
-/// Function to handle the running server loop
-pub fn server_running(
-    tcp_listener: &mut Option<TcpListener>,
-    active_clients: &mut Vec<TcpStream>,
-    logs: &mut Vec<String>,
-    app_state: &mut AppState,
-    game_state: &mut GameState,
-    board: &mut Option<Board>,
-    last_tick_time: &mut f64,
-    tick_counter: &mut i32,
-) {
-    draw_text("Server running...", 20.0, 20.0, 20.0, YELLOW);
+        let mut logs = vec!["Server initialized.".to_string()];
 
-    draw_lobby(
-        tcp_listener,
-        active_clients,
-        logs,
-        app_state,
-        game_state,
-        board,
-    );
+        let tcp_listener =
+            TcpListener::bind(format!("0.0.0.0:{}", config.server_port)).map_err(|e| {
+                io::Error::new(e.kind(), format!("TCP port {}: {}", config.server_port, e))
+            })?;
+        tcp_listener.set_nonblocking(true)?;
 
-    // Handle Network Operations
-    accept_new_connections(tcp_listener, active_clients, logs, game_state);
+        let udp_socket = match UdpSocket::bind(format!("0.0.0.0:{}", config.discovery_port)) {
+            Ok(sock) => {
+                sock.set_nonblocking(true)?;
+                Some(sock)
+            }
+            Err(e) => {
+                eprintln!(
+                    "[SERVER WARN] UDP {} unavailable: {}",
+                    config.discovery_port, e
+                );
+                logs.push(format!(
+                    "WARNING: UDP {} in use ({}). Server browser disabled -",
+                    config.discovery_port, e
+                ));
+                logs.push("clients must use DIRECT JOIN BY IP & PORT.".to_string());
+                None
+            }
+        };
 
-    // Pass the board to process_client_messages so it can update directions
-    let disconnected_indices = process_client_messages(active_clients, logs, game_state, board);
-    cleanup_disconnected_clients(active_clients, disconnected_indices);
+        let initial_snapshot = ServerStateSnapshot {
+            state: GameState::Waiting,
+            game_id: 1001,
+            players: Vec::new(),
+            flag_status: FlagStatus::Available,
+            flag_carrier_id: 0,
+            flag_x: 0.0,
+            flag_y: 0.0,
+            tick: 0,
+            countdown_seconds: config.countdown_seconds,
+            logs,
+        };
 
-    // Execute the Game Tick Loop if the game is actively running
-    if *game_state == GameState::Running {
-        if let Some(ref mut active_board) = *board {
-            process_game_tick(active_clients, active_board, last_tick_time, tick_counter);
+        let latest_snapshot = Arc::new(Mutex::new(initial_snapshot.clone()));
+        let snapshot_writer = latest_snapshot.clone();
+
+        let cfg = config.clone();
+        thread::spawn(move || {
+            if let Err(e) = super::server_loop::run_server_loop(
+                cfg,
+                server_name,
+                tcp_listener,
+                udp_socket,
+                cmd_rx,
+                snap_tx,
+                snapshot_writer.clone(),
+            ) {
+                eprintln!("[SERVER ERROR] {}", e);
+                snapshot_writer
+                    .lock()
+                    .unwrap()
+                    .logs
+                    .push(format!("SERVER ERROR: {}", e));
+            }
+        });
+
+        Ok(Self {
+            config,
+            cmd_tx,
+            snapshot_rx: snap_rx,
+            latest_snapshot,
+        })
+    }
+
+    /// Function to trigger the game start countdown sequence
+    pub fn start_countdown(&self) {
+        let _ = self.cmd_tx.send(ServerCommand::StartCountdown);
+    }
+
+    /// Function to update and retrieve the latest server state snapshot
+    pub fn update_snapshot(&mut self) -> ServerStateSnapshot {
+        while let Ok(snap) = self.snapshot_rx.try_recv() {
+            *self.latest_snapshot.lock().unwrap() = snap;
         }
+        self.latest_snapshot.lock().unwrap().clone()
+    }
+}
+
+impl Drop for GameServer {
+    /// Function to automatically signal server shutdown on drop
+    fn drop(&mut self) {
+        let _ = self.cmd_tx.send(ServerCommand::StopServer);
     }
 }

@@ -1,0 +1,242 @@
+use crate::{
+    client::client::GameClient,
+    config::*,
+    gui::{
+        camera::Camera2DWorld,
+        render::render_game_world,
+        ui::{gui_button, gui_panel, render_event_logs},
+    },
+    protocol::types::*,
+};
+use macroquad::prelude::*;
+
+use super::runner::AppMode;
+
+// ============================================================================
+// MODE CLIENT
+// ============================================================================
+
+/// Function to update client game state, render the HUD, and handle player inputs
+pub fn update(client: &mut GameClient, camera: &mut Camera2DWorld, time: f32) -> Option<AppMode> {
+    let snap = client.get_snapshot();
+
+    // Word-wrapping implementation for long connection errors
+    if let Some(ref err) = snap.error_msg {
+        clear_background(Color::from_rgba(20, 15, 25, 255));
+        gui_panel(
+            screen_width() / 2.0 - 250.0,
+            screen_height() / 2.0 - 150.0, // Expanded height to fit wrapped text
+            500.0,
+            300.0,
+            "CONNECTION ERROR",
+        );
+
+        let mut err_y = screen_height() / 2.0 - 80.0;
+        let mut current_line = String::new();
+
+        for word in err.split_whitespace() {
+            if current_line.len() + word.len() > 42 {
+                draw_text(
+                    &current_line,
+                    screen_width() / 2.0 - 220.0,
+                    err_y,
+                    FONT_SIZE_HEADER,
+                    Color::from_rgba(239, 83, 80, 255),
+                );
+                err_y += 25.0;
+                current_line = String::new();
+            }
+            current_line.push_str(word);
+            current_line.push(' ');
+        }
+        if !current_line.is_empty() {
+            draw_text(
+                &current_line,
+                screen_width() / 2.0 - 220.0,
+                err_y,
+                FONT_SIZE_HEADER,
+                Color::from_rgba(239, 83, 80, 255),
+            );
+        }
+
+        if gui_button(
+            screen_width() / 2.0 - 100.0,
+            screen_height() / 2.0 + 80.0,
+            200.0,
+            40.0,
+            "RETURN TO MENU",
+            Color::from_rgba(0, 180, 255, 255),
+        ) {
+            return Some(AppMode::Launcher);
+        }
+        return None;
+    }
+
+    let mut new_dir = Direction::None;
+    if is_key_down(KeyCode::W) || is_key_down(KeyCode::Up) {
+        new_dir = Direction::Up;
+    } else if is_key_down(KeyCode::S) || is_key_down(KeyCode::Down) {
+        new_dir = Direction::Down;
+    } else if is_key_down(KeyCode::A) || is_key_down(KeyCode::Left) {
+        new_dir = Direction::Left;
+    } else if is_key_down(KeyCode::D) || is_key_down(KeyCode::Right) {
+        new_dir = Direction::Right;
+    }
+    client.set_direction(new_dir);
+
+    if is_key_pressed(KeyCode::Space) || is_key_pressed(KeyCode::E) {
+        client.send_interact();
+    }
+
+    if is_key_pressed(KeyCode::Escape) {
+        client.leave();
+        return Some(AppMode::Launcher);
+    }
+
+    if let Some(me) = snap.players.iter().find(|p| p.player_id == snap.player_id) {
+        camera.target_x = me.x;
+        camera.target_y = me.y;
+    }
+    camera.zoom = 0.55;
+
+    // 1. Render World & Logs
+    render_game_world(
+        camera,
+        &snap.config,
+        &snap.players,
+        snap.flag_status,
+        snap.flag_carrier_id,
+        snap.flag_x,
+        snap.flag_y,
+        Some(snap.player_id),
+        time,
+    );
+    render_event_logs(screen_width() - 340.0, 90.0, 320.0, 300.0, &snap.logs);
+
+    // 2. Top-Left HUD Information
+    let sw = screen_width();
+    let sh = screen_height();
+
+    gui_panel(20.0, 20.0, sw - 40.0, 60.0, "");
+    let carrier_info = if snap.flag_status == FlagStatus::Carried {
+        if let Some(name) = snap.player_names.get(&snap.flag_carrier_id) {
+            format!("Carried by {}", name)
+        } else {
+            format!("Carried by ID {}", snap.flag_carrier_id)
+        }
+    } else {
+        format!("{:?}", snap.flag_status)
+    };
+
+    // Server Info
+    draw_text(
+        &format!(
+            "SERVER: {} ({}) | PLAYER ID: {} | STATE: {:?}",
+            snap.server_name, snap.server_ip, snap.player_id, snap.game_state
+        ),
+        35.0,
+        45.0,
+        FONT_SIZE_HEADER,
+        WHITE,
+    );
+    draw_text(
+        &format!("FLAG STATUS: {} | TICK: {}", carrier_info, snap.tick),
+        35.0,
+        65.0,
+        FONT_SIZE_SMALL,
+        Color::from_rgba(0, 229, 255, 255),
+    );
+
+    // Calculate dynamic HUD size based on the number of connected players
+    let players_count = snap.players.len();
+    let hud_w = 240.0;
+    let hud_h = 135.0 + (players_count as f32 * 22.0);
+
+    // Connected Players Leaderboard
+    draw_rectangle(20.0, 90.0, hud_w, hud_h, Color::from_rgba(15, 20, 30, 200));
+    draw_rectangle_lines(
+        20.0,
+        90.0,
+        hud_w,
+        hud_h,
+        1.0,
+        Color::from_rgba(60, 100, 150, 255),
+    );
+
+    draw_text(
+        "CONNECTED PLAYERS:",
+        35.0,
+        115.0,
+        FONT_SIZE_REGULAR,
+        Color::from_rgba(150, 180, 220, 255),
+    );
+    let mut py = 135.0;
+    for p in &snap.players {
+        let me_indicator = if p.player_id == snap.player_id {
+            " (You)"
+        } else {
+            ""
+        };
+        draw_text(
+            &format!("- [ID: {}] {}{}", p.player_id, p.name, me_indicator),
+            35.0,
+            py,
+            FONT_SIZE_SMALL,
+            WHITE,
+        );
+        py += 22.0;
+    }
+
+    // 3. Bottom Controls Text
+    let controls_txt =
+        "CONTROLS:  [WASD / Arrow Keys] Move   |   [Space / E] Take or Steal Flag   |   [Esc] Exit";
+    draw_text(
+        controls_txt,
+        sw / 2.0 - 360.0,
+        sh - 20.0,
+        FONT_SIZE_REGULAR,
+        Color::from_rgba(220, 180, 0, 255), // Yellow
+    );
+
+    // 4. Game Over Overlay
+    if snap.game_state == GameState::Finished {
+        draw_rectangle(0.0, 0.0, sw, sh, Color::from_rgba(0, 0, 0, 180));
+        gui_panel(
+            sw / 2.0 - 250.0,
+            sh / 2.0 - 120.0,
+            500.0,
+            240.0,
+            "[★] GAME OVER [★]",
+        );
+
+        draw_text(
+            &format!("WINNER: {}!", snap.winner_name),
+            sw / 2.0 - 150.0,
+            sh / 2.0 - 30.0,
+            FONT_SIZE_LARGE_HEADER,
+            GOLD,
+        );
+
+        draw_text(
+            "The winner successfully carried the flag out of the central circle!",
+            sw / 2.0 - 210.0,
+            sh / 2.0 + 10.0,
+            FONT_SIZE_TINY,
+            WHITE,
+        );
+
+        if gui_button(
+            sw / 2.0 - 100.0,
+            sh / 2.0 + 50.0,
+            200.0,
+            45.0,
+            "MAIN MENU",
+            Color::from_rgba(0, 200, 100, 255),
+        ) {
+            client.leave();
+            return Some(AppMode::Launcher);
+        }
+    }
+
+    None
+}

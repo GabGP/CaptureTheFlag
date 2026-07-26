@@ -1,8 +1,7 @@
 use crate::{
     client::client_utils::{ClientCommand, ClientStateSnapshot},
     protocol::network::tcp_utils::{read_frame, send_frame},
-    protocol::protocol::Message,
-    types::*,
+    protocol::{protocol::Message, types::*},
 };
 use std::io;
 use std::net::TcpStream;
@@ -43,7 +42,7 @@ pub fn run_client_loop(
             snap.player_id = player_id;
             snap.game_id = game_id;
             snap.logs.push(format!(
-                "Joined server successfully! Assigned Player ID: {}",
+                "Joined server successfully! ID: {}",
                 player_id
             ));
         }

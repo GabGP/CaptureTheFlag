@@ -1,4 +1,4 @@
-use crate::types::*;
+use crate::protocol::types::*;
 use std::collections::HashMap;
 
 // ============================================================================
@@ -25,6 +25,8 @@ pub struct ClientStateSnapshot {
     pub winner_name: String,
     pub error_msg: Option<String>,
     pub logs: Vec<String>,
+    pub server_name: String,
+    pub server_ip: String,
 }
 
 pub enum ClientCommand {

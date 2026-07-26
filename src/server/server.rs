@@ -1,4 +1,4 @@
-use crate::{server::server_utils::*, types::*};
+use crate::{server::server_utils::*, protocol::types::*};
 use std::io;
 use std::net::{TcpListener, UdpSocket};
 use std::sync::mpsc::{Receiver, Sender, channel};

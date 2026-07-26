@@ -1,6 +1,4 @@
-use crate::protocol::protocol;
-use crate::types::*;
-
+use crate::protocol::{protocol, types::*};
 use std::collections::HashMap;
 use std::io;
 use std::net::{SocketAddr, UdpSocket};

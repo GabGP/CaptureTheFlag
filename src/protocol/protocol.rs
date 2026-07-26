@@ -1,6 +1,4 @@
-use crate::protocol::utils;
-use crate::types::*;
-
+use crate::protocol::{types::*, utils};
 use std::io;
 
 pub const PROTOCOL_VERSION: u8 = 3;

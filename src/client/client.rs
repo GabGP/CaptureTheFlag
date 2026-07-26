@@ -1,4 +1,4 @@
-use crate::{client::client_utils::*, types::*};
+use crate::{client::client_utils::*, protocol::types::*};
 
 use std::collections::HashMap;
 use std::io;
@@ -18,7 +18,7 @@ pub struct GameClient {
 
 impl GameClient {
     /// Function to establish connection with the server and initialize client state
-    pub fn connect(target_ip: String, target_port: u16, player_name: String) -> io::Result<Self> {
+    pub fn connect(target_ip: String, target_port: u16, player_name: String, server_name: String) -> io::Result<Self> {
         let (cmd_tx, cmd_rx) = channel::<ClientCommand>();
 
         let initial_snap = ClientStateSnapshot {
@@ -40,6 +40,8 @@ impl GameClient {
             winner_name: String::new(),
             error_msg: None,
             logs: vec![format!("Connecting to {}:{}...", target_ip, target_port)],
+            server_name: server_name,
+            server_ip: format!("{}:{}", target_ip, target_port),
         };
 
         let state_arc = Arc::new(Mutex::new(initial_snap));

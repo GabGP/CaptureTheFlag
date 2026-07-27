@@ -79,7 +79,7 @@ pub fn update(server: &mut GameServer, camera: &mut Camera2DWorld, time: f32) ->
         COLOR_UI_ACCENT_CYAN,
     );
 
-// 3. Connected Players HUD
+    // 3. Connected Players HUD
     let players_count = snap.players.len();
     let hud_w = 240.0;
     let hud_h = 135.0 + (players_count as f32 * 22.0);
@@ -124,6 +124,17 @@ pub fn update(server: &mut GameServer, camera: &mut Camera2DWorld, time: f32) ->
             Color::from_rgba(0, 200, 100, 255),
         ) {
             server.start_countdown();
+        }
+
+        if gui_button(
+            20.0,
+            screen_height() - 50.0,
+            150.0,
+            36.0,
+            "[<] GO BACK",
+            Color::from_rgba(200, 60, 60, 255),
+        ) {
+            return Some(AppMode::Launcher);
         }
     } else {
         if gui_button(

@@ -1,4 +1,4 @@
-use crate::{gui::camera::Camera2DWorld, protocol::types::*};
+use crate::{config::*, gui::camera::Camera2DWorld, protocol::types::*};
 use macroquad::prelude::*;
 
 // ============================================================================
@@ -8,42 +8,51 @@ use macroquad::prelude::*;
 /// Function to render the map background and grid
 pub fn render_background_and_grid(cam: &Camera2DWorld, config: &GameConfig) {
     let half_map = config.map_size / 2.0;
-    clear_background(Color::from_rgba(15, 20, 32, 255));
+    clear_background(COLOR_WORLD_BG_CLEAR);
 
     let (min_x, min_y) = cam.world_to_screen(-half_map, -half_map);
     let (max_x, max_y) = cam.world_to_screen(half_map, half_map);
     let map_w = max_x - min_x;
     let map_h = max_y - min_y;
 
-    draw_rectangle(
-        min_x,
-        min_y,
-        map_w,
-        map_h,
-        Color::from_rgba(22, 30, 48, 255),
-    );
+    draw_rectangle(min_x, min_y, map_w, map_h, COLOR_WORLD_MAP_BG);
     draw_rectangle_lines(
         min_x,
         min_y,
         map_w,
         map_h,
-        3.0,
-        Color::from_rgba(64, 120, 200, 180),
+        RENDER_MAP_BORDER_THICKNESS,
+        COLOR_WORLD_MAP_BORDER,
     );
 
-    let step = 200.0;
+    // GRID
+    let step = RENDER_GRID_STEP;
     let mut gx = -half_map + step;
     while gx < half_map {
         let (sx1, sy1) = cam.world_to_screen(gx, -half_map);
         let (sx2, sy2) = cam.world_to_screen(gx, half_map);
-        draw_line(sx1, sy1, sx2, sy2, 1.0, Color::from_rgba(255, 255, 255, 12));
+        draw_line(
+            sx1,
+            sy1,
+            sx2,
+            sy2,
+            RENDER_GRID_LINE_THICKNESS,
+            COLOR_WORLD_GRID_LINE,
+        );
         gx += step;
     }
     let mut gy = -half_map + step;
     while gy < half_map {
         let (sx1, sy1) = cam.world_to_screen(-half_map, gy);
         let (sx2, sy2) = cam.world_to_screen(half_map, gy);
-        draw_line(sx1, sy1, sx2, sy2, 1.0, Color::from_rgba(255, 255, 255, 12));
+        draw_line(
+            sx1,
+            sy1,
+            sx2,
+            sy2,
+            RENDER_GRID_LINE_THICKNESS,
+            COLOR_WORLD_GRID_LINE,
+        );
         gy += step;
     }
 }
@@ -53,10 +62,16 @@ pub fn render_central_circle(cam: &Camera2DWorld, config: &GameConfig, time: f32
     let (cx, cy) = cam.world_to_screen(0.0, 0.0);
     let circle_r_screen = cam.world_to_screen_dist(config.circle_radius);
 
-    draw_circle(cx, cy, circle_r_screen, Color::from_rgba(0, 229, 255, 20));
+    draw_circle(cx, cy, circle_r_screen, COLOR_CIRCLE_BG);
     let pulse = (time * 3.0).sin() * 0.2 + 0.8;
     let cyan_glow = Color::from_rgba(0, 229, 255, (180.0 * pulse) as u8);
-    draw_circle_lines(cx, cy, circle_r_screen, 4.0, cyan_glow);
+    draw_circle_lines(
+        cx,
+        cy,
+        circle_r_screen,
+        RENDER_CIRCLE_BORDER_THICKNESS,
+        cyan_glow,
+    );
 
     let label = "CENTRAL CIRCLE (CAPTURE ZONE)";
     let font_size = (18.0 * cam.zoom).clamp(12.0, 22.0);
@@ -64,9 +79,9 @@ pub fn render_central_circle(cam: &Camera2DWorld, config: &GameConfig, time: f32
     draw_text(
         label,
         cx - dims.width / 2.0,
-        cy - circle_r_screen - 10.0,
+        cy - circle_r_screen - RENDER_CIRCLE_TEXT_OFFSET_Y,
         font_size,
-        Color::from_rgba(0, 229, 255, 220),
+        COLOR_CIRCLE_TEXT,
     );
 }
 
@@ -87,23 +102,31 @@ pub fn render_flag(
 
     if flag_status == FlagStatus::Available || flag_status == FlagStatus::Dropped {
         let glow_r = cam.world_to_screen_dist(config.interaction_radius * 0.5) * gold_pulse;
-        draw_circle(fx, fy, glow_r, Color::from_rgba(255, 215, 0, 40));
+        draw_circle(fx, fy, glow_r, COLOR_FLAG_GLOW_AVAILABLE);
         draw_circle(
             fx,
             fy,
             cam.world_to_screen_dist(12.0),
-            Color::from_rgba(255, 215, 0, 255),
+            COLOR_FLAG_CENTER_AVAILABLE,
         );
         draw_circle_lines(
             fx,
             fy,
             cam.world_to_screen_dist(config.interaction_radius),
-            1.5,
-            Color::from_rgba(255, 215, 0, 100),
+            RENDER_FLAG_INTERACT_BORDER_THICKNESS,
+            COLOR_FLAG_INTERACT_RADIUS,
         );
 
-        let pole_h = cam.world_to_screen_dist(35.0);
-        draw_line(fx, fy, fx, fy - pole_h, 3.0, WHITE);
+        // FLAG POLE
+        let pole_h = cam.world_to_screen_dist(RENDER_FLAG_POLE_AVAILABLE_HEIGHT);
+        draw_line(
+            fx,
+            fy,
+            fx,
+            fy - pole_h,
+            RENDER_FLAG_POLE_LINE_THICKNESS,
+            WHITE,
+        );
         draw_triangle(
             Vec2::new(fx, fy - pole_h),
             Vec2::new(
@@ -119,14 +142,28 @@ pub fn render_flag(
         } else {
             "FLAG (DROPPED)"
         };
-        draw_text(txt, fx - 40.0, fy + 25.0, 14.0, GOLD);
+        draw_text(
+            txt,
+            fx - RENDER_FLAG_POLE_CARRIED_HEIGHT,
+            fy + 25.0,
+            FONT_SIZE_MEDIUM,
+            GOLD,
+        );
     } else if flag_status == FlagStatus::Carried {
         let glow_r = cam.world_to_screen_dist(config.player_radius * 2.2) * gold_pulse;
-        draw_circle(fx, fy, glow_r, Color::from_rgba(255, 215, 0, 80));
-        draw_circle_lines(fx, fy, glow_r, 2.5, GOLD);
+        draw_circle(fx, fy, glow_r, COLOR_FLAG_GLOW_CARRIED);
+        draw_circle_lines(fx, fy, glow_r, RENDER_FLAG_CARRIED_BORDER_THICKNESS, GOLD);
 
-        let pole_h = cam.world_to_screen_dist(40.0);
-        draw_line(fx, fy, fx, fy - pole_h, 3.0, GOLD);
+        // FLAG POLE
+        let pole_h = cam.world_to_screen_dist(RENDER_FLAG_POLE_CARRIED_HEIGHT);
+        draw_line(
+            fx,
+            fy,
+            fx,
+            fy - pole_h,
+            RENDER_FLAG_POLE_LINE_THICKNESS,
+            GOLD,
+        );
         draw_triangle(
             Vec2::new(fx, fy - pole_h),
             Vec2::new(

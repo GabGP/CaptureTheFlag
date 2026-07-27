@@ -3,7 +3,8 @@ use crate::{
     gui::{
         camera::Camera2DWorld,
         render::render_game_world,
-        ui::{gui_button, gui_panel, render_event_logs},
+        render_logs::render_event_logs,
+        ui::{gui_button, gui_panel},
     },
     protocol::types::*,
     server::server::GameServer,
@@ -43,8 +44,8 @@ pub fn update(server: &mut GameServer, camera: &mut Camera2DWorld, time: f32) ->
         "SERVER MONITOR (HOST MODE)",
         35.0,
         45.0,
-        FONT_SIZE_HEADER,
-        Color::from_rgba(0, 229, 255, 255),
+        FONT_SIZE_MEDIUM,
+        COLOR_UI_ACCENT_CYAN,
     );
 
     if snap.state == GameState::Waiting {

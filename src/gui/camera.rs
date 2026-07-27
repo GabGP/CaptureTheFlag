@@ -1,3 +1,4 @@
+use crate::config::*;
 use macroquad::prelude::*;
 
 // ============================================================================
@@ -15,7 +16,7 @@ impl Camera2DWorld {
         Self {
             target_x: 0.0,
             target_y: 0.0,
-            zoom: 0.35,
+            zoom: CAMERA_DEFAULT_ZOOM,
         }
     }
 

@@ -1,4 +1,4 @@
-use crate::{gui::camera::Camera2DWorld, protocol::types::*};
+use crate::{config::*, gui::camera::Camera2DWorld, protocol::types::*};
 use macroquad::prelude::*;
 
 // ============================================================================
@@ -7,16 +7,7 @@ use macroquad::prelude::*;
 
 /// Function to get the player color based on their ID
 pub fn get_player_color(id: u16) -> Color {
-    let colors = [
-        Color::from_rgba(239, 83, 80, 255),
-        Color::from_rgba(66, 165, 245, 255),
-        Color::from_rgba(102, 187, 106, 255),
-        Color::from_rgba(171, 71, 188, 255),
-        Color::from_rgba(255, 167, 38, 255),
-        Color::from_rgba(38, 198, 218, 255),
-        Color::from_rgba(236, 64, 122, 255),
-        Color::from_rgba(212, 225, 87, 255),
-    ];
+    let colors = PLAYER_COLORS;
     colors[(id as usize) % colors.len()]
 }
 
@@ -34,13 +25,18 @@ pub fn render_players(
         let p_color = get_player_color(p.player_id);
 
         if is_local {
-            draw_circle(px, py, p_radius + 6.0, Color::from_rgba(255, 255, 255, 120));
+            draw_circle(
+                px,
+                py,
+                p_radius + RENDER_PLAYER_AURA_OFFSET,
+                COLOR_PLAYER_LOCAL_AURA,
+            );
         }
 
         draw_circle(px, py, p_radius, p_color);
-        draw_circle_lines(px, py, p_radius, 2.0, WHITE);
+        draw_circle_lines(px, py, p_radius, RENDER_PLAYER_OUTLINE_THICKNESS, WHITE);
 
-        let dir_len = p_radius * 1.6;
+        let dir_len = p_radius * RENDER_PLAYER_DIR_MULTIPLIER;
         let mut dx = 0.0;
         let mut dy = 0.0;
         match p.direction {
@@ -51,25 +47,33 @@ pub fn render_players(
             Direction::None => {}
         }
         if p.direction != Direction::None {
-            draw_line(px, py, px + dx, py + dy, 3.0, WHITE);
-            draw_circle(px + dx, py + dy, 3.0, WHITE);
+            draw_line(
+                px,
+                py,
+                px + dx,
+                py + dy,
+                RENDER_PLAYER_DIR_LINE_THICKNESS,
+                WHITE,
+            );
+            draw_circle(px + dx, py + dy, RENDER_PLAYER_DIR_DOT_RADIUS, WHITE);
         }
 
+        // NAME TAG
         let name_str = if p.name.is_empty() {
             format!("P{:02}", p.player_id)
         } else {
             format!("{} (P{:02})", p.name, p.player_id)
         };
-        let dims = measure_text(&name_str, None, 14, 1.0);
+        let dims = measure_text(&name_str, None, FONT_SIZE_MEDIUM as u16, 1.0);
         let tag_x = px - dims.width / 2.0;
-        let tag_y = py - p_radius - 8.0;
+        let tag_y = py - p_radius - UI_NAME_TAG_OFFSET_Y;
 
         draw_rectangle(
-            tag_x - 4.0,
-            tag_y - 12.0,
-            dims.width + 8.0,
-            16.0,
-            Color::from_rgba(0, 0, 0, 180),
+            tag_x - UI_NAME_TAG_PADDING_X,
+            tag_y - UI_NAME_TAG_PADDING_Y,
+            dims.width + UI_NAME_TAG_OFFSET_Y,
+            UI_NAME_TAG_HEIGHT,
+            COLOR_NAME_TAG_BG,
         );
         let text_color = if p.has_flag {
             GOLD
@@ -78,6 +82,6 @@ pub fn render_players(
         } else {
             WHITE
         };
-        draw_text(&name_str, tag_x, tag_y, 14.0, text_color);
+        draw_text(&name_str, tag_x, tag_y, FONT_SIZE_MEDIUM, text_color);
     }
 }

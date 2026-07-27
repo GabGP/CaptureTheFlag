@@ -30,7 +30,7 @@ pub fn update(app: &mut AppRunner, time: f32) -> Option<AppMode> {
         sw / 2.0 - 190.0,
         70.0,
         FONT_SIZE_TITLE,
-        Color::from_rgba(0, 229, 255, 255),
+        COLOR_UI_ACCENT_CYAN,
     );
     draw_text(
         "PRFC Version 3.0.0 Binary Protocol - Rust Sockets & Macroquad",
@@ -226,7 +226,7 @@ pub fn update(app: &mut AppRunner, time: f32) -> Option<AppMode> {
                 &format!("{} ({}:{})", srv.server_name, srv.ip, srv.tcp_port),
                 p2_x + 35.0,
                 sy + 25.0,
-                FONT_SIZE_HEADER,
+                FONT_SIZE_MEDIUM,
                 WHITE,
             );
 
@@ -245,7 +245,7 @@ pub fn update(app: &mut AppRunner, time: f32) -> Option<AppMode> {
                 p2_x + 35.0,
                 sy + 45.0,
                 FONT_SIZE_SMALL,
-                Color::from_rgba(0, 229, 255, 255),
+                COLOR_UI_ACCENT_CYAN,
             );
 
             if srv.state == GameState::Waiting {

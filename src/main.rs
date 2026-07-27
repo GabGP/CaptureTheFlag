@@ -30,7 +30,7 @@ async fn main() {
     let custom_font = load_ttf_font("./assets/fonts/JetBrainsMono-Bold.ttf")
         .await
         .unwrap_or_else(|_| {
-            panic!("Failed to load font from assets/fonts/JetBrainsMono-Regular.ttf");
+            panic!("Failed to load font from assets/fonts/JetBrainsMono-Bold.ttf");
         });
 
     set_default_font(custom_font);

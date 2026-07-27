@@ -4,7 +4,8 @@ use crate::{
     gui::{
         camera::Camera2DWorld,
         render::render_game_world,
-        ui::{gui_button, gui_panel, render_event_logs},
+        render_logs::render_event_logs,
+        ui::{gui_button, gui_panel},
     },
     protocol::types::*,
 };
@@ -40,8 +41,8 @@ pub fn update(client: &mut GameClient, camera: &mut Camera2DWorld, time: f32) ->
                     &current_line,
                     screen_width() / 2.0 - 220.0,
                     err_y,
-                    FONT_SIZE_HEADER,
-                    Color::from_rgba(239, 83, 80, 255),
+                    FONT_SIZE_MEDIUM,
+                    COLOR_ERROR,
                 );
                 err_y += 25.0;
                 current_line = String::new();
@@ -54,8 +55,8 @@ pub fn update(client: &mut GameClient, camera: &mut Camera2DWorld, time: f32) ->
                 &current_line,
                 screen_width() / 2.0 - 220.0,
                 err_y,
-                FONT_SIZE_HEADER,
-                Color::from_rgba(239, 83, 80, 255),
+                FONT_SIZE_MEDIUM,
+                COLOR_ERROR,
             );
         }
 
@@ -136,7 +137,7 @@ pub fn update(client: &mut GameClient, camera: &mut Camera2DWorld, time: f32) ->
         ),
         35.0,
         45.0,
-        FONT_SIZE_HEADER,
+        FONT_SIZE_MEDIUM,
         WHITE,
     );
     draw_text(
@@ -144,7 +145,7 @@ pub fn update(client: &mut GameClient, camera: &mut Camera2DWorld, time: f32) ->
         35.0,
         65.0,
         FONT_SIZE_SMALL,
-        Color::from_rgba(0, 229, 255, 255),
+        COLOR_UI_ACCENT_CYAN,
     );
 
     // Calculate dynamic HUD size based on the number of connected players
@@ -206,14 +207,14 @@ pub fn update(client: &mut GameClient, camera: &mut Camera2DWorld, time: f32) ->
             sh / 2.0 - 120.0,
             500.0,
             240.0,
-            "[★] GAME OVER [★]",
+            "[*] GAME OVER [*]",
         );
 
         draw_text(
             &format!("WINNER: {}!", snap.winner_name),
             sw / 2.0 - 150.0,
             sh / 2.0 - 30.0,
-            FONT_SIZE_LARGE_HEADER,
+            FONT_SIZE_LARGE,
             GOLD,
         );
 

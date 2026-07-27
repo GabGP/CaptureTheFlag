@@ -7,25 +7,25 @@ use macroquad::prelude::*;
 
 /// Function to draw a GUI panel
 pub fn gui_panel(x: f32, y: f32, w: f32, h: f32, title: &str) {
-    draw_rectangle(x, y, w, h, Color::from_rgba(20, 26, 42, 230));
-    draw_rectangle_lines(x, y, w, h, 2.0, Color::from_rgba(50, 80, 130, 200));
+    draw_rectangle(x, y, w, h, COLOR_UI_PANEL_BG);
+    draw_rectangle_lines(x, y, w, h, UI_PANEL_BORDER_THICKNESS, COLOR_UI_PANEL_BORDER);
 
     if !title.is_empty() {
-        draw_rectangle(x, y, w, 32.0, Color::from_rgba(30, 42, 68, 255));
+        draw_rectangle(x, y, w, UI_PANEL_TITLE_HEIGHT, COLOR_UI_PANEL_TITLE_BG);
         draw_line(
             x,
             y + 32.0,
             x + w,
             y + 32.0,
-            1.5,
-            Color::from_rgba(60, 100, 160, 255),
+            UI_PANEL_TITLE_LINE_THICKNESS,
+            COLOR_UI_PANEL_TITLE_LINE,
         );
         draw_text(
             title,
-            x + 12.0,
-            y + 22.0,
-            FONT_SIZE_HEADER,
-            Color::from_rgba(0, 229, 255, 255),
+            x + UI_PANEL_TITLE_TEXT_OFFSET_X,
+            y + UI_PANEL_TITLE_TEXT_OFFSET_Y,
+            FONT_SIZE_MEDIUM,
+            COLOR_UI_ACCENT_CYAN,
         );
     }
 }
@@ -41,33 +41,33 @@ pub fn gui_button(x: f32, y: f32, w: f32, h: f32, text: &str, accent: Color) -> 
         Color::from_rgba(accent.r as u8, accent.g as u8, accent.b as u8, 255)
     } else if hovered {
         Color::from_rgba(
-            (accent.r * 255.0 * 0.8) as u8,
-            (accent.g * 255.0 * 0.8) as u8,
-            (accent.b * 255.0 * 0.8) as u8,
+            (accent.r * 255.0 * UI_BUTTON_HOVER_DARKEN) as u8,
+            (accent.g * 255.0 * UI_BUTTON_HOVER_DARKEN) as u8,
+            (accent.b * 255.0 * UI_BUTTON_HOVER_DARKEN) as u8,
             220,
         )
     } else {
-        Color::from_rgba(30, 40, 62, 220)
+        COLOR_UI_BUTTON_BG
     };
 
     let border_color = if hovered {
         accent
     } else {
-        Color::from_rgba(60, 90, 140, 255)
+        COLOR_UI_BUTTON_BORDER
     };
 
     draw_rectangle(x, y, w, h, bg_color);
-    draw_rectangle_lines(x, y, w, h, 2.0, border_color);
+    draw_rectangle_lines(x, y, w, h, UI_BUTTON_BORDER_THICKNESS, border_color);
 
-    let font_size = FONT_SIZE_HEADER as u16;
+    let font_size = FONT_SIZE_MEDIUM as u16;
     let dims = measure_text(text, None, font_size, 1.0);
     let text_x = x + (w - dims.width) / 2.0;
-    let text_y = y + (h + dims.height) / 2.0 - 2.0;
+    let text_y = y + (h + dims.height) / 2.0 + UI_BUTTON_TEXT_OFFSET_Y;
 
     let text_color = if clicked || hovered {
         WHITE
     } else {
-        Color::from_rgba(220, 230, 245, 255)
+        COLOR_UI_BUTTON_TEXT
     };
     draw_text(text, text_x, text_y, font_size as f32, text_color);
 
@@ -88,19 +88,19 @@ pub fn gui_text_input(
     draw_text(
         label,
         x,
-        y - 6.0,
-        FONT_SIZE_HEADER,
-        Color::from_rgba(160, 180, 210, 255),
+        y + UI_INPUT_LABEL_OFFSET_Y,
+        FONT_SIZE_MEDIUM,
+        COLOR_UI_INPUT_LABEL,
     );
 
     let border_color = if focused {
-        Color::from_rgba(0, 229, 255, 255)
+        COLOR_UI_ACCENT_CYAN
     } else {
-        Color::from_rgba(60, 80, 120, 255)
+        COLOR_UI_INPUT_BORDER
     };
 
-    draw_rectangle(x, y, w, h, Color::from_rgba(15, 22, 36, 255));
-    draw_rectangle_lines(x, y, w, h, 1.5, border_color);
+    draw_rectangle(x, y, w, h, COLOR_UI_INPUT_BG);
+    draw_rectangle_lines(x, y, w, h, UI_INPUT_BORDER_THICKNESS, border_color);
 
     if focused {
         while let Some(c) = get_char_pressed() {
@@ -121,9 +121,9 @@ pub fn gui_text_input(
 
     draw_text(
         &display_str,
-        x + 8.0,
-        y + h / 2.0 + 5.0,
-        FONT_SIZE_HEADER,
+        x + UI_INPUT_TEXT_OFFSET_X,
+        y + h / 2.0 + UI_INPUT_TEXT_OFFSET_Y,
+        FONT_SIZE_MEDIUM,
         WHITE,
     );
 
@@ -133,32 +133,4 @@ pub fn gui_text_input(
         && mouse_pos.0 <= x + w
         && mouse_pos.1 >= y
         && mouse_pos.1 <= y + h
-}
-
-/// Function to draw logs on the screen
-pub fn render_event_logs(x: f32, y: f32, w: f32, h: f32, logs: &[String]) {
-    gui_panel(x, y, w, h, "GAME EVENT LOG");
-    let line_height = 18.0;
-    let start_y = y + 48.0;
-    let max_lines = ((h - 55.0) / line_height) as usize;
-
-    let display_logs = if logs.len() > max_lines {
-        &logs[logs.len() - max_lines..]
-    } else {
-        logs
-    };
-
-    for (idx, line) in display_logs.iter().enumerate() {
-        let ly = start_y + (idx as f32) * line_height;
-        let color = if line.contains("WINNER") || line.contains("GAME OVER") {
-            GOLD
-        } else if line.contains("stole") || line.contains("picked up") {
-            Color::from_rgba(0, 229, 255, 255)
-        } else if line.contains("disconnected") {
-            Color::from_rgba(239, 83, 80, 255)
-        } else {
-            Color::from_rgba(180, 200, 225, 255)
-        };
-        draw_text(line, x + 12.0, ly, FONT_SIZE_REGULAR, color);
-    }
 }

@@ -5,6 +5,7 @@ use crate::{
         camera::Camera2DWorld,
         render::render_game_world,
         render_logs::render_event_logs,
+        render_overlays::{render_countdown_overlay, render_game_over_overlay, render_go_burst},
         ui::{gui_button, gui_panel},
     },
     protocol::types::*,
@@ -153,7 +154,7 @@ pub fn update(client: &mut GameClient, camera: &mut Camera2DWorld, time: f32) ->
     let hud_w = 240.0;
     let hud_h = 135.0 + (players_count as f32 * 22.0);
 
-    // Connected Players Leaderboard
+    // Connected Players HUD
     draw_rectangle(20.0, 90.0, hud_w, hud_h, Color::from_rgba(15, 20, 30, 200));
     draw_rectangle_lines(
         20.0,
@@ -172,17 +173,13 @@ pub fn update(client: &mut GameClient, camera: &mut Camera2DWorld, time: f32) ->
         Color::from_rgba(150, 180, 220, 255),
     );
     let mut py = 135.0;
-    
+
     // Collect and sort by ID for a stable HUD layout
     let mut sorted_players: Vec<(&u16, &String)> = snap.player_names.iter().collect();
     sorted_players.sort_by_key(|&(id, _)| id);
 
     for (id, name) in sorted_players {
-        let me_indicator = if *id == snap.player_id {
-            " (You)"
-        } else {
-            ""
-        };
+        let me_indicator = if *id == snap.player_id { " (You)" } else { "" };
         draw_text(
             &format!("- [ID: {}] {}{}", id, name, me_indicator),
             35.0,
@@ -204,41 +201,16 @@ pub fn update(client: &mut GameClient, camera: &mut Camera2DWorld, time: f32) ->
         Color::from_rgba(220, 180, 0, 255), // Yellow
     );
 
-    // 4. Game Over Overlay
+    // Countdown Overlay & "GO!" Burst
+    if snap.game_state == GameState::Starting {
+        render_countdown_overlay(snap.countdown_seconds, time, sw, sh);
+    } else if snap.game_state == GameState::Running && snap.tick <= 15 {
+        render_go_burst(snap.tick, sw, sh);
+    }
+
+    // Game Over Overlay
     if snap.game_state == GameState::Finished {
-        draw_rectangle(0.0, 0.0, sw, sh, Color::from_rgba(0, 0, 0, 180));
-        gui_panel(
-            sw / 2.0 - 250.0,
-            sh / 2.0 - 120.0,
-            500.0,
-            240.0,
-            "[*] GAME OVER [*]",
-        );
-
-        draw_text(
-            &format!("WINNER: {}!", snap.winner_name),
-            sw / 2.0 - 150.0,
-            sh / 2.0 - 30.0,
-            FONT_SIZE_LARGE,
-            GOLD,
-        );
-
-        draw_text(
-            "The winner successfully carried the flag out of the central circle!",
-            sw / 2.0 - 210.0,
-            sh / 2.0 + 10.0,
-            FONT_SIZE_TINY,
-            WHITE,
-        );
-
-        if gui_button(
-            sw / 2.0 - 100.0,
-            sh / 2.0 + 50.0,
-            200.0,
-            45.0,
-            "MAIN MENU",
-            Color::from_rgba(0, 200, 100, 255),
-        ) {
+        if render_game_over_overlay(&snap.winner_name, sw, sh) {
             client.leave();
             return Some(AppMode::Launcher);
         }

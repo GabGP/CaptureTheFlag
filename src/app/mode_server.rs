@@ -4,6 +4,7 @@ use crate::{
         camera::Camera2DWorld,
         render::render_game_world,
         render_logs::render_event_logs,
+        render_overlays::{render_countdown_overlay, render_game_over_overlay, render_go_burst},
         ui::{gui_button, gui_panel},
     },
     protocol::types::*,
@@ -151,41 +152,16 @@ pub fn update(server: &mut GameServer, camera: &mut Camera2DWorld, time: f32) ->
 
     render_event_logs(sw - 340.0, 90.0, 320.0, 300.0, &snap.logs);
 
-    // 5. Game Over Overlay
+    // Countdown Overlay & "GO!" Burst
+    if snap.state == GameState::Starting {
+        render_countdown_overlay(snap.countdown_seconds, time, sw, sh);
+    } else if snap.state == GameState::Running && snap.tick <= 15 {
+        render_go_burst(snap.tick, sw, sh);
+    }
+
+    // Game Over Overlay
     if snap.state == GameState::Finished {
-        draw_rectangle(0.0, 0.0, sw, sh, Color::from_rgba(0, 0, 0, 180));
-        gui_panel(
-            sw / 2.0 - 250.0,
-            sh / 2.0 - 120.0,
-            500.0,
-            240.0,
-            "[*] GAME OVER [*]",
-        );
-
-        draw_text(
-            &format!("WINNER: {}!", snap.winner_name),
-            sw / 2.0 - 150.0,
-            sh / 2.0 - 30.0,
-            FONT_SIZE_LARGE,
-            GOLD,
-        );
-
-        draw_text(
-            "The winner successfully carried the flag out of the central circle!",
-            sw / 2.0 - 210.0,
-            sh / 2.0 + 10.0,
-            FONT_SIZE_TINY,
-            WHITE,
-        );
-
-        if gui_button(
-            sw / 2.0 - 100.0,
-            sh / 2.0 + 50.0,
-            200.0,
-            45.0,
-            "MAIN MENU",
-            Color::from_rgba(0, 200, 100, 255),
-        ) {
+        if render_game_over_overlay(&snap.winner_name, sw, sh) {
             return Some(AppMode::Launcher);
         }
     }

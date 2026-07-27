@@ -26,7 +26,7 @@ pub fn render_countdown_overlay(countdown_seconds: u8, time: f32, sw: f32, sh: f
 
     let alpha = shrink.clamp(0.0, 1.0);
     let main_color = Color::new(GOLD.r, GOLD.g, GOLD.b, alpha);
-    let border_color = Color::new(0.0, 0.0, 0.0, alpha);
+    let border_color = Color::new(BROWN.r, BROWN.g, BROWN.b, alpha);
 
     let text = format!("{}", countdown_seconds);
     let dims = measure_text(&text, None, pulse_size as u16, 1.0);
@@ -53,7 +53,7 @@ pub fn render_go_burst(tick: u32, sw: f32, sh: f32) {
 
     let alpha = shrink.clamp(0.0, 1.0);
     let main_color = Color::new(GOLD.r, GOLD.g, GOLD.b, alpha);
-    let border_color = Color::new(0.0, 0.0, 0.0, alpha);
+    let border_color = Color::new(BROWN.r, BROWN.g, BROWN.b, alpha);
 
     let text = "GO!";
     let dims = measure_text(text, None, pulse_size as u16, 1.0);

@@ -1,4 +1,4 @@
-use crate::{server::server_utils::*, protocol::types::*};
+use crate::{protocol::types::*, server::server_utils::*};
 use std::io;
 use std::net::{TcpListener, UdpSocket};
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -60,6 +60,10 @@ impl GameServer {
             tick: 0,
             countdown_seconds: config.countdown_seconds,
             logs,
+            server_name: server_name.clone(),
+            server_ip: format!("0.0.0.0:{}", config.server_port),
+            winner_id: None,
+            winner_name: String::new(),
         };
 
         let latest_snapshot = Arc::new(Mutex::new(initial_snapshot.clone()));

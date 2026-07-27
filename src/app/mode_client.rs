@@ -149,7 +149,7 @@ pub fn update(client: &mut GameClient, camera: &mut Camera2DWorld, time: f32) ->
     );
 
     // Calculate dynamic HUD size based on the number of connected players
-    let players_count = snap.players.len();
+    let players_count = snap.player_names.len();
     let hud_w = 240.0;
     let hud_h = 135.0 + (players_count as f32 * 22.0);
 
@@ -165,21 +165,26 @@ pub fn update(client: &mut GameClient, camera: &mut Camera2DWorld, time: f32) ->
     );
 
     draw_text(
-        "CONNECTED PLAYERS:",
+        &format!("CONNECTED PLAYERS: {}", players_count),
         35.0,
         115.0,
         FONT_SIZE_REGULAR,
         Color::from_rgba(150, 180, 220, 255),
     );
     let mut py = 135.0;
-    for p in &snap.players {
-        let me_indicator = if p.player_id == snap.player_id {
+    
+    // Collect and sort by ID for a stable HUD layout
+    let mut sorted_players: Vec<(&u16, &String)> = snap.player_names.iter().collect();
+    sorted_players.sort_by_key(|&(id, _)| id);
+
+    for (id, name) in sorted_players {
+        let me_indicator = if *id == snap.player_id {
             " (You)"
         } else {
             ""
         };
         draw_text(
-            &format!("- [ID: {}] {}{}", p.player_id, p.name, me_indicator),
+            &format!("- [ID: {}] {}{}", id, name, me_indicator),
             35.0,
             py,
             FONT_SIZE_SMALL,

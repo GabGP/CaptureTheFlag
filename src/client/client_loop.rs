@@ -41,10 +41,8 @@ pub fn run_client_loop(
             snap.connected = true;
             snap.player_id = player_id;
             snap.game_id = game_id;
-            snap.logs.push(format!(
-                "Joined server successfully! ID: {}",
-                player_id
-            ));
+            snap.logs
+                .push(format!("Joined server successfully! ID: {}", player_id));
         }
         Message::JoinRejected { reason } => {
             let mut snap = state_writer.lock().unwrap();
@@ -95,9 +93,10 @@ pub fn run_client_loop(
                     let mut snap = state_writer.lock().unwrap();
                     snap.game_state = state;
                     snap.lobby_players = players.clone();
-                    for p in players {
-                        snap.player_names.insert(p.player_id, p.name);
-                    }
+
+                    // Rebuild player_names from the active lobby list
+                    snap.player_names =
+                        players.into_iter().map(|p| (p.player_id, p.name)).collect();
                 }
                 Message::GameCountdown { seconds_remaining } => {
                     let mut snap = state_writer.lock().unwrap();
@@ -185,11 +184,17 @@ pub fn run_client_loop(
                 }
                 Message::PlayerDisconnected { player_id } => {
                     let mut snap = state_writer.lock().unwrap();
+
+                    // Remove from player_names HashMap
                     let pname = snap
                         .player_names
-                        .get(&player_id)
-                        .cloned()
+                        .remove(&player_id)
                         .unwrap_or_else(|| format!("ID {}", player_id));
+
+                    // Clean up from both player lists
+                    snap.players.retain(|p| p.player_id != player_id);
+                    snap.lobby_players.retain(|p| p.player_id != player_id);
+
                     snap.logs.push(format!("Player {} disconnected.", pname));
                 }
                 Message::GameOver {

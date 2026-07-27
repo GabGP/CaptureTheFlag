@@ -21,4 +21,8 @@ pub struct ServerStateSnapshot {
     pub tick: u32,
     pub countdown_seconds: u8,
     pub logs: Vec<String>,
+    pub server_name: String,
+    pub server_ip: String,
+    pub winner_id: Option<u16>,
+    pub winner_name: String,
 }

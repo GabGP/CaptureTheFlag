@@ -24,6 +24,8 @@ pub fn update_countdown_state(
     flag_y: &mut f32,
     logs: &mut Vec<String>,
     config: &GameConfig,
+    winner_id: &mut Option<u16>,
+    winner_name: &mut String,
 ) {
     if *state == GameState::Starting {
         if last_countdown_instant.elapsed() >= Duration::from_secs(1) {
@@ -37,6 +39,8 @@ pub fn update_countdown_state(
             } else {
                 *state = GameState::Running;
                 *tick = 0;
+                *winner_id = None;
+                *winner_name = String::new();
 
                 let spawn_dist = config.circle_radius + config.spawn_margin;
                 for p in players.values_mut() {
@@ -85,6 +89,8 @@ pub fn update_running_game_state(
     pending_interacts: &mut HashMap<u16, Instant>,
     last_tick_time: &mut Instant,
     tick_dur: Duration,
+    winner_id: &mut Option<u16>,  // <-- ADD THIS
+    winner_name: &mut String,    // <-- ADD THIS
 ) {
     if *state == GameState::Running && last_tick_time.elapsed() >= tick_dur {
         *last_tick_time = Instant::now();
@@ -191,6 +197,9 @@ pub fn update_running_game_state(
         if let Some((win_id, win_name)) = winner {
             *state = GameState::Finished;
             *flag_status = FlagStatus::Outside;
+            *winner_id = Some(win_id);
+            *winner_name = win_name.clone();
+            
             logs.push(format!("GAME OVER! Winner: {} (ID {})", win_name, win_id));
 
             let game_state_msg = Message::GameStateMsg {

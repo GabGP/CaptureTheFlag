@@ -56,6 +56,11 @@ pub fn run_server_loop(
     let mut pending_inputs: HashMap<u16, Direction> = HashMap::new();
     let mut pending_interacts: HashMap<u16, Instant> = HashMap::new();
 
+    // Winner
+    let mut winner_id: Option<u16> = None;
+    let mut winner_name: String = String::new();
+
+    // Tick
     let tick_dur = Duration::from_millis(config.tick_interval_ms as u64);
     let mut last_tick_time = Instant::now();
 
@@ -149,6 +154,8 @@ pub fn run_server_loop(
             &mut flag_y,
             &mut logs,
             &config,
+            &mut winner_id,
+            &mut winner_name,
         );
 
         update_running_game_state(
@@ -166,6 +173,8 @@ pub fn run_server_loop(
             &mut pending_interacts,
             &mut last_tick_time,
             tick_dur,
+            &mut winner_id,
+            &mut winner_name,
         );
 
         let current_snap = ServerStateSnapshot {
@@ -179,6 +188,10 @@ pub fn run_server_loop(
             tick,
             countdown_seconds: countdown_sec,
             logs: logs.clone(),
+            server_name: server_name.clone(),
+            server_ip: format!("0.0.0.0:{}", config.server_port),
+            winner_id,
+            winner_name: winner_name.clone(),
         };
         *latest_snapshot_arc.lock().unwrap() = current_snap.clone();
         let _ = snap_tx.send(current_snap);

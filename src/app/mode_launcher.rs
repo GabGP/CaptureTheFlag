@@ -239,8 +239,8 @@ pub fn update(app: &mut AppRunner, time: f32) -> Option<AppMode> {
 
             draw_text(
                 &format!(
-                    "Players: {}/{} | Status: {}",
-                    srv.player_count, srv.max_players, state_str
+                    "Players: {}/{} | Status: {} | Game ID: {}",
+                    srv.player_count, srv.max_players, state_str, srv.game_id,
                 ),
                 p2_x + 35.0,
                 sy + 45.0,

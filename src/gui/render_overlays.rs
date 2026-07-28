@@ -5,7 +5,11 @@ use crate::{
 use macroquad::prelude::*;
 use std::sync::atomic::{AtomicU32, AtomicU8, Ordering};
 
-/// Renders the shrinking countdown number overlay
+// ============================================================================
+// RENDER OVERPLAYS
+// ============================================================================
+
+/// Function to render the shrinking countdown number overlay
 pub fn render_countdown_overlay(countdown_seconds: u8, time: f32, sw: f32, sh: f32) {
     // Statics scoped strictly to this function
     static LAST_COUNTDOWN: AtomicU8 = AtomicU8::new(255);
@@ -44,7 +48,7 @@ pub fn render_countdown_overlay(countdown_seconds: u8, time: f32, sw: f32, sh: f
     draw_text(&text, text_x, text_y, pulse_size, main_color);
 }
 
-/// Renders the "GO!" burst for the first 15 ticks
+/// Function to render the "GO!" burst for the first 15 ticks
 pub fn render_go_burst(tick: u32, sw: f32, sh: f32) {
     let progress = tick as f32 / 15.0; // 0.0 -> 1.0
     let shrink = 1.0 - progress;
@@ -71,7 +75,7 @@ pub fn render_go_burst(tick: u32, sw: f32, sh: f32) {
     draw_text(text, text_x, text_y, pulse_size, main_color);
 }
 
-/// Renders the Game Over panel. Returns `true` if the Main Menu button is clicked.
+/// Function to render the Game Over panel
 pub fn render_game_over_overlay(winner_name: &str, sw: f32, sh: f32) -> bool {
     draw_rectangle(0.0, 0.0, sw, sh, Color::from_rgba(0, 0, 0, 180));
     gui_panel(

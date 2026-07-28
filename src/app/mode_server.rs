@@ -64,8 +64,8 @@ pub fn update(server: &mut GameServer, camera: &mut Camera2DWorld, time: f32) ->
     // Server Info
     draw_text(
         &format!(
-            "SERVER: {} ({}) | STATE: {:?}",
-            snap.server_name, snap.server_ip, snap.state
+            "SERVER: {} ({}) | STATE: {:?} | GAME ID: {} | SERVER MODE",
+            snap.server_name, snap.server_ip, snap.state, snap.game_id,
         ),
         35.0,
         45.0,

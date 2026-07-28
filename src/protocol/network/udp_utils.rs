@@ -1,4 +1,7 @@
-use crate::protocol::{protocol, types::*};
+use crate::{
+    debugger::{LogDirection, log_client_message},
+    protocol::{protocol, types::*},
+};
 use std::collections::HashMap;
 use std::io;
 use std::net::{SocketAddr, UdpSocket};
@@ -42,6 +45,15 @@ impl UdpScanner {
                             } = msg
                             {
                                 let ip = src_addr.ip().to_string();
+                                log_client_message(
+                                    &ip,
+                                    LogDirection::Received,
+                                    "DiscoverResponse",
+                                    &format!(
+                                        "server_name={}, tcp_port={}, state={:?}, player_count={}, maximum_players={}",
+                                        server_name, tcp_port, state, player_count, maximum_players
+                                    ),
+                                );
                                 let key = format!("{}:{}", ip, tcp_port);
                                 let server_info = DiscoveredServer {
                                     ip,
@@ -78,9 +90,21 @@ impl UdpScanner {
         let bytes = req.serialize();
         if let Ok(target) = format!("255.255.255.255:{}", discovery_port).parse::<SocketAddr>() {
             let _ = self.socket.send_to(&bytes, target);
+            log_client_message(
+                &target.to_string(),
+                LogDirection::Sent,
+                "DiscoverRequest",
+                "broadcast discovery request",
+            );
         }
         if let Ok(local_target) = format!("127.0.0.1:{}", discovery_port).parse::<SocketAddr>() {
             let _ = self.socket.send_to(&bytes, local_target);
+            log_client_message(
+                &local_target.to_string(),
+                LogDirection::Sent,
+                "DiscoverRequest",
+                "local discovery request",
+            );
         }
     }
 

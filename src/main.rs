@@ -1,6 +1,7 @@
 mod app;
 mod client;
 mod config;
+mod debugger;
 mod gui;
 mod protocol;
 mod server;
@@ -34,6 +35,7 @@ async fn main() {
         });
 
     set_default_font(custom_font);
+    debugger::init_logger();
 
     let mut app = AppRunner::new();
 

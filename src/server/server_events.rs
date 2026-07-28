@@ -34,31 +34,49 @@ pub fn handle_network_event(
             let trimmed_name = name.trim().to_string();
 
             if trimmed_name.is_empty() || trimmed_name.len() > 20 {
+                let address = stream
+                    .peer_addr()
+                    .map(|a| a.to_string())
+                    .unwrap_or_else(|_| "unknown".to_string());
                 let _ = send_frame(
                     &mut stream,
                     &Message::JoinRejected {
                         reason: JoinRejectReason::InvalidName,
                     },
+                    "server",
+                    &address,
                 );
                 return;
             }
 
             if *state != GameState::Waiting {
+                let address = stream
+                    .peer_addr()
+                    .map(|a| a.to_string())
+                    .unwrap_or_else(|_| "unknown".to_string());
                 let _ = send_frame(
                     &mut stream,
                     &Message::JoinRejected {
                         reason: JoinRejectReason::GameAlreadyStarted,
                     },
+                    "server",
+                    &address,
                 );
                 return;
             }
 
             if players.len() >= config.maximum_players as usize {
+                let address = stream
+                    .peer_addr()
+                    .map(|a| a.to_string())
+                    .unwrap_or_else(|_| "unknown".to_string());
                 let _ = send_frame(
                     &mut stream,
                     &Message::JoinRejected {
                         reason: JoinRejectReason::GameFull,
                     },
+                    "server",
+                    &address,
                 );
                 return;
             }
@@ -66,12 +84,18 @@ pub fn handle_network_event(
             let pid = *next_player_id;
             *next_player_id += 1;
 
+            let address = stream
+                .peer_addr()
+                .map(|a| a.to_string())
+                .unwrap_or_else(|_| "unknown".to_string());
             if send_frame(
                 &mut stream,
                 &Message::JoinAccepted {
                     player_id: pid,
                     game_id,
                 },
+                "server",
+                &address,
             )
             .is_ok()
             {

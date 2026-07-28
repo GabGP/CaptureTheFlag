@@ -25,11 +25,17 @@ pub fn run_client_loop(
     let mut stream = TcpStream::connect(format!("{}:{}", target_ip, target_port))?;
     stream.set_nonblocking(false)?;
 
+    let remote_addr = format!("{}:{}", target_ip, target_port);
     let mut writer = stream.try_clone()?;
 
-    send_frame(&mut writer, &Message::Join { name: player_name })?;
+    send_frame(
+        &mut writer,
+        &Message::Join { name: player_name },
+        "client",
+        &remote_addr,
+    )?;
 
-    let first_resp = read_frame(&mut stream)?;
+    let first_resp = read_frame(&mut stream, "client", &remote_addr)?;
     let mut my_player_id = 0;
     let mut _my_game_id = 0;
 
@@ -66,19 +72,19 @@ pub fn run_client_loop(
                         player_id: my_player_id,
                         direction: dir,
                     };
-                    let _ = send_frame(&mut writer, &msg);
+                    let _ = send_frame(&mut writer, &msg, "client", &remote_addr);
                 }
                 ClientCommand::SendInteract => {
                     let msg = Message::Interact {
                         player_id: my_player_id,
                     };
-                    let _ = send_frame(&mut writer, &msg);
+                    let _ = send_frame(&mut writer, &msg, "client", &remote_addr);
                 }
                 ClientCommand::Leave => {
                     let msg = Message::Leave {
                         player_id: my_player_id,
                     };
-                    let _ = send_frame(&mut writer, &msg);
+                    let _ = send_frame(&mut writer, &msg, "client", &remote_addr);
                     let mut snap = state_writer.lock().unwrap();
                     snap.connected = false;
                     snap.logs.push("Left game.".to_string());
@@ -87,7 +93,7 @@ pub fn run_client_loop(
             }
         }
 
-        match read_frame(&mut stream) {
+        match read_frame(&mut stream, "client", &remote_addr) {
             Ok(msg) => match msg {
                 Message::LobbyState { state, players } => {
                     let mut snap = state_writer.lock().unwrap();

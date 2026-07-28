@@ -35,7 +35,11 @@ pub enum ClientNetEvent {
 pub fn broadcast_msg(streams: &mut HashMap<u16, TcpStream>, msg: &Message) {
     let mut to_remove = Vec::new();
     for (pid, stream) in streams.iter_mut() {
-        if send_frame(stream, msg).is_err() {
+        let address = stream
+            .peer_addr()
+            .map(|a| a.to_string())
+            .unwrap_or_else(|_| "unknown".to_string());
+        if send_frame(stream, msg, "server", &address).is_err() {
             to_remove.push(*pid);
         }
     }
@@ -52,8 +56,12 @@ pub fn spawn_client_reader(stream: TcpStream, net_tx: Sender<ClientNetEvent>, pi
             let mut stream = stream_clone;
             stream.set_nonblocking(false).ok();
             stream.set_read_timeout(None).ok();
+            let peer_address = stream
+                .peer_addr()
+                .map(|a| a.to_string())
+                .unwrap_or_else(|_| "unknown".to_string());
             loop {
-                match read_frame(&mut stream) {
+                match read_frame(&mut stream, "server", &peer_address) {
                     Ok(Message::Input {
                         player_id,
                         direction,

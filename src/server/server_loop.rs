@@ -98,6 +98,12 @@ pub fn run_server_loop(
                         };
                         let bytes = resp.serialize();
                         let _ = sock.send_to(&bytes, src);
+                        crate::debugger::log_server_message(
+                            &src.to_string(),
+                            crate::debugger::LogDirection::Sent,
+                            "DiscoverResponse",
+                            &format!("game_id={}, server_name={}", game_id, server_name),
+                        );
                     }
                 }
             }
@@ -111,7 +117,13 @@ pub fn run_server_loop(
                         let mut stream = stream;
                         stream.set_nonblocking(false).ok();
                         stream.set_read_timeout(Some(Duration::from_secs(5))).ok();
-                        if let Ok(Message::Join { name }) = read_frame(&mut stream) {
+                        let address = stream
+                            .peer_addr()
+                            .map(|a| a.to_string())
+                            .unwrap_or_else(|_| "unknown".to_string());
+                        if let Ok(Message::Join { name }) =
+                            read_frame(&mut stream, "server", &address)
+                        {
                             let _ = net_tx_clone.send(ClientNetEvent::Join { name, stream });
                         }
                     });

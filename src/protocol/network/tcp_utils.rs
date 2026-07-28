@@ -3,6 +3,7 @@ use crate::{
     protocol::protocol,
 };
 use std::io::{self, Read, Write};
+use std::time::Duration;
 
 // ============================================================================
 // TCP NETWORK UTILITIES
@@ -24,6 +25,27 @@ pub fn send_frame<W: Write>(
     Ok(())
 }
 
+/// Function to read exact bytes from a non-blocking reader, waiting and retrying on WouldBlock errors
+fn read_exact_or_wait<R: Read>(reader: &mut R, buf: &mut [u8]) -> io::Result<()> {
+    let mut read = 0usize;
+    while read < buf.len() {
+        match reader.read(&mut buf[read..]) {
+            Ok(0) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    "connection closed while reading frame",
+                ));
+            }
+            Ok(n) => read += n,
+            Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            Err(err) => return Err(err),
+        }
+    }
+    Ok(())
+}
+
 /// Function to receive and decode an incoming message from a TCP connection
 pub fn read_frame<R: Read>(
     reader: &mut R,
@@ -31,11 +53,11 @@ pub fn read_frame<R: Read>(
     address: &str,
 ) -> io::Result<protocol::Message> {
     let mut len_bytes = [0u8; 2];
-    reader.read_exact(&mut len_bytes)?;
+    read_exact_or_wait(reader, &mut len_bytes)?;
     let len = u16::from_be_bytes(len_bytes) as usize;
 
     let mut buf = vec![0u8; len];
-    reader.read_exact(&mut buf)?;
+    read_exact_or_wait(reader, &mut buf)?;
     let message = protocol::Message::deserialize(&buf)?;
     log_message(address, side, LogDirection::Received, &message);
     Ok(message)

@@ -74,27 +74,6 @@ pub fn update(client: &mut GameClient, camera: &mut Camera2DWorld, time: f32) ->
         return None;
     }
 
-    let mut new_dir = Direction::None;
-    if is_key_down(KeyCode::W) || is_key_down(KeyCode::Up) {
-        new_dir = Direction::Up;
-    } else if is_key_down(KeyCode::S) || is_key_down(KeyCode::Down) {
-        new_dir = Direction::Down;
-    } else if is_key_down(KeyCode::A) || is_key_down(KeyCode::Left) {
-        new_dir = Direction::Left;
-    } else if is_key_down(KeyCode::D) || is_key_down(KeyCode::Right) {
-        new_dir = Direction::Right;
-    }
-    client.set_direction(new_dir);
-
-    if is_key_pressed(KeyCode::Space) || is_key_pressed(KeyCode::E) {
-        client.send_interact();
-    }
-
-    if is_key_pressed(KeyCode::Escape) {
-        client.leave();
-        return Some(AppMode::Launcher);
-    }
-
     if let Some(me) = snap.players.iter().find(|p| p.player_id == snap.player_id) {
         camera.target_x = me.x;
         camera.target_y = me.y;
@@ -200,6 +179,29 @@ pub fn update(client: &mut GameClient, camera: &mut Camera2DWorld, time: f32) ->
         FONT_SIZE_REGULAR,
         Color::from_rgba(220, 180, 0, 255), // Yellow
     );
+
+    if snap.game_state == GameState::Running {
+        let mut new_dir = Direction::None;
+        if is_key_down(KeyCode::W) || is_key_down(KeyCode::Up) {
+            new_dir = Direction::Up;
+        } else if is_key_down(KeyCode::S) || is_key_down(KeyCode::Down) {
+            new_dir = Direction::Down;
+        } else if is_key_down(KeyCode::A) || is_key_down(KeyCode::Left) {
+            new_dir = Direction::Left;
+        } else if is_key_down(KeyCode::D) || is_key_down(KeyCode::Right) {
+            new_dir = Direction::Right;
+        }
+        client.set_direction(new_dir);
+
+        if is_key_pressed(KeyCode::Space) || is_key_pressed(KeyCode::E) {
+            client.send_interact();
+        }
+    }
+
+    if is_key_pressed(KeyCode::Escape) {
+        client.leave();
+        return Some(AppMode::Launcher);
+    }
 
     // Countdown Overlay & "GO!" Burst
     if snap.game_state == GameState::Starting {

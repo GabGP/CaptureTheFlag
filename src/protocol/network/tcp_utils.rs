@@ -23,7 +23,7 @@ fn write_all_with_retry<W: Write>(writer: &mut W, buf: &[u8]) -> io::Result<()> 
             }
             Ok(n) => written += n,
             Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
-                thread::sleep(Duration::from_millis(5));
+                thread::yield_now();
             }
             Err(err) if err.kind() == io::ErrorKind::Interrupted => {}
             Err(err) => return Err(err),
@@ -38,7 +38,7 @@ fn flush_with_retry<W: Write>(writer: &mut W) -> io::Result<()> {
         match writer.flush() {
             Ok(()) => return Ok(()),
             Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
-                thread::sleep(Duration::from_millis(5));
+                thread::yield_now();
             }
             Err(err) if err.kind() == io::ErrorKind::Interrupted => {}
             Err(err) => return Err(err),
@@ -75,8 +75,9 @@ fn read_exact_or_wait<R: Read>(reader: &mut R, buf: &mut [u8]) -> io::Result<()>
             }
             Ok(n) => read += n,
             Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
-                thread::sleep(Duration::from_millis(5));
+                thread::yield_now();
             }
+            Err(err) if err.kind() == io::ErrorKind::Interrupted => {}
             Err(err) => return Err(err),
         }
     }

@@ -1,3 +1,5 @@
+use rand::random;
+
 use crate::{
     protocol::{
         network::tcp_utils::read_frame,
@@ -33,7 +35,7 @@ pub fn run_server_loop(
     snap_tx: Sender<ServerStateSnapshot>,
     latest_snapshot_arc: Arc<Mutex<ServerStateSnapshot>>,
 ) -> io::Result<()> {
-    let game_id: u16 = 1001;
+    let game_id: u16 = random();
     let (net_tx, net_rx) = channel::<ClientNetEvent>();
 
     let mut state = GameState::Waiting;

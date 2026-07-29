@@ -3,48 +3,11 @@ use crate::{
     protocol::protocol,
 };
 use std::io::{self, Read, Write};
-use std::thread;
 use std::time::Duration;
 
 // ============================================================================
 // TCP NETWORK UTILITIES
 // ============================================================================
-
-/// Function to write all bytes to a non-blocking writer, retrying on WouldBlock or Interrupted errors
-fn write_all_with_retry<W: Write>(writer: &mut W, buf: &[u8]) -> io::Result<()> {
-    let mut written = 0usize;
-    while written < buf.len() {
-        match writer.write(&buf[written..]) {
-            Ok(0) => {
-                return Err(io::Error::new(
-                    io::ErrorKind::WriteZero,
-                    "failed to write any bytes",
-                ));
-            }
-            Ok(n) => written += n,
-            Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
-                thread::yield_now();
-            }
-            Err(err) if err.kind() == io::ErrorKind::Interrupted => {}
-            Err(err) => return Err(err),
-        }
-    }
-    Ok(())
-}
-
-/// Function to flush a non-blocking writer, retrying on WouldBlock or Interrupted errors
-fn flush_with_retry<W: Write>(writer: &mut W) -> io::Result<()> {
-    loop {
-        match writer.flush() {
-            Ok(()) => return Ok(()),
-            Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
-                thread::yield_now();
-            }
-            Err(err) if err.kind() == io::ErrorKind::Interrupted => {}
-            Err(err) => return Err(err),
-        }
-    }
-}
 
 /// Function to bundle and send a message securely over a TCP connection
 pub fn send_frame<W: Write>(
@@ -55,9 +18,9 @@ pub fn send_frame<W: Write>(
 ) -> io::Result<()> {
     let payload = msg.serialize();
     let len = payload.len() as u16;
-    write_all_with_retry(writer, &len.to_be_bytes())?;
-    write_all_with_retry(writer, &payload)?;
-    flush_with_retry(writer)?;
+    writer.write_all(&len.to_be_bytes())?;
+    writer.write_all(&payload)?;
+    writer.flush()?;
     log_message(address, side, LogDirection::Sent, msg);
     Ok(())
 }
@@ -75,9 +38,8 @@ fn read_exact_or_wait<R: Read>(reader: &mut R, buf: &mut [u8]) -> io::Result<()>
             }
             Ok(n) => read += n,
             Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
-                thread::yield_now();
+                std::thread::sleep(Duration::from_millis(5));
             }
-            Err(err) if err.kind() == io::ErrorKind::Interrupted => {}
             Err(err) => return Err(err),
         }
     }

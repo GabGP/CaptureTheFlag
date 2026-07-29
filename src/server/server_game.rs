@@ -89,8 +89,8 @@ pub fn update_running_game_state(
     pending_interacts: &mut HashMap<u16, Instant>,
     last_tick_time: &mut Instant,
     tick_dur: Duration,
-    winner_id: &mut Option<u16>,  // <-- ADD THIS
-    winner_name: &mut String,    // <-- ADD THIS
+    winner_id: &mut Option<u16>,
+    winner_name: &mut String,
 ) {
     if *state == GameState::Running && last_tick_time.elapsed() >= tick_dur {
         *last_tick_time = Instant::now();

@@ -33,7 +33,7 @@ impl AppRunner {
         Self {
             mode: AppMode::Launcher,
             player_name_input: "RustWarrior".to_string(),
-            server_name_input: "Rust Host #1".to_string(),
+            server_name_input: "Rust Host - Group 1".to_string(),
             target_ip_input: "127.0.0.1".to_string(),
             target_port_input: "5000".to_string(),
             focus_field: 0,

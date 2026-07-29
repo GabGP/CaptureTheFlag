@@ -51,7 +51,7 @@ impl GameServer {
 
         let initial_snapshot = ServerStateSnapshot {
             state: GameState::Waiting,
-            game_id: 1001,
+            game_id: 1,
             players: Vec::new(),
             flag_status: FlagStatus::Available,
             flag_carrier_id: 0,

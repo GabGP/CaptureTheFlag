@@ -85,6 +85,10 @@ pub fn run_client_loop(
                         player_id: my_player_id,
                     };
                     let _ = send_frame(&mut writer, &msg, "client", &remote_addr);
+
+                    // Shut down the TCP connection after sending LEAVE
+                    let _ = stream.shutdown(std::net::Shutdown::Both);
+
                     let mut snap = state_writer.lock().unwrap();
                     snap.connected = false;
                     snap.logs.push("Left game.".to_string());

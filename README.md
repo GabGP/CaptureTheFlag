@@ -1,5 +1,7 @@
 # CaptureTheFlag
 
+#### By @GabGP and @guillermo-martinez42
+
 CaptureTheFlag is a multiplayer arena game implemented as a Rust desktop application. The project follows the rules and communication model described in [PRFC-VERSION-3.md](PRFC-VERSION-3.md), using a binary client/server protocol. The goal is to provide a complete game experience in which players compete to capture the flag, return it outside the central circle, and win before the opposing players do.
 
 ## Project Overview
@@ -11,6 +13,7 @@ This project is structured as a small but complete real-time game architecture:
 - A client-side layer connects to the server, sends input, receives state updates, and renders the game world locally.
 - A protocol layer defines the binary message format so that clients and servers can exchange game state consistently.
 - A GUI layer handles rendering, overlays, camera behavior, and user interface feedback.
+- A logger that logs every communication send/receive and stores on .log files depending on server/client communication.
 
 The result is a modular design where gameplay rules, networking, and presentation are separated into distinct layers.
 
@@ -45,6 +48,7 @@ The source tree is organized around clear responsibilities:
 - src/protocol: shared protocol structures and message serialization
 - src/gui: rendering, camera management, and overlays
 - src/config: configuration values for the game
+- src/debugger: logs communication between server/client
 
 ## Architecture
 
@@ -60,13 +64,19 @@ The server is the authority of the match. It owns the official map state, player
 
 Clients are responsible for presenting the game to the user and sending input intentions to the server. They do not decide the outcome of gameplay on their own; instead, they follow the server's authoritative state. This separation helps keep the experience consistent across different machines and implementations.
 
-### 4. Binary protocol foundation
+### 4. Binary protocol
 
 The protocol layer is based on [PRFC-VERSION-3.md](PRFC-VERSION-3.md). That specification defines the game rules, the server/client responsibilities, and the binary message layout used by the project. The implementation uses that protocol as the contract for communication between all parties.
+
+The versions of the protocol can be found here: https://github.com/erickm13/CC8-Protocolo
 
 ### 5. Rendering and UI
 
 The graphical layer is responsible for drawing the world, players, UI overlays, and logs. The camera and rendering modules are designed to reflect the game state that arrives from the server, creating a smooth view of the match as it evolves.
+
+### 6. Logging
+
+The logger logs every communication done between server/client and stores the logs in a .log file. separated by server/client for easier debugging.
 
 ## Notes
 

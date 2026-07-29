@@ -81,7 +81,13 @@ pub fn run_server_loop(
                         broadcast_msg(&mut player_streams, &msg);
                     }
                 }
-                ServerCommand::StopServer => return Ok(()),
+                ServerCommand::StopServer => {
+                    // Shut down all client connections to flush buffers
+                    for stream in player_streams.values() {
+                        let _ = stream.shutdown(std::net::Shutdown::Both);
+                    }
+                    return Ok(());
+                },
             }
         }
 

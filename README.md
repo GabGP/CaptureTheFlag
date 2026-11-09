@@ -1,83 +1,142 @@
-# CaptureTheFlag
+<h1 align="center">Capture the Flag</h1>
 
-#### By @GabGP and @guillermo-martinez42
+<p align="center">
+  <strong>A real-time multiplayer arena game for the local network, written in Rust.</strong><br>
+  Grab the flag in the middle, carry it out of the circle, and don't let anyone steal it on the way.
+</p>
 
-CaptureTheFlag is a multiplayer arena game implemented as a Rust desktop application. The project follows the rules and communication model described in [PRFC-VERSION-3.md](PRFC-VERSION-3.md), using a binary client/server protocol. The goal is to provide a complete game experience in which players compete to capture the flag, return it outside the central circle, and win before the opposing players do.
+<p align="center">
+  <img src="docs/media/match.webp" width="800" alt="A full match seen from the host: two players join, a countdown runs, Ada grabs the flag, Linus steals it from her and carries it out of the circle to win">
+</p>
 
-## Project Overview
+<p align="center">
+  <sub>A full round, seen from the host's window: Ada grabs the flag, Linus steals it and breaks out of the circle to win.</sub>
+</p>
 
-This project is structured as a small but complete real-time game architecture:
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#how-to-play">How to play</a> ·
+  <a href="#screenshots">Screenshots</a> ·
+  <a href="#how-it-works">How it works</a>
+</p>
 
-- A launcher entry point starts the application and selects whether the machine will host a server or join a client session.
-- A server-side layer maintains the authoritative game state, processes player inputs, advances the world simulation, and validates every gameplay action.
-- A client-side layer connects to the server, sends input, receives state updates, and renders the game world locally.
-- A protocol layer defines the binary message format so that clients and servers can exchange game state consistently.
-- A GUI layer handles rendering, overlays, camera behavior, and user interface feedback.
-- A logger that logs every communication send/receive and stores on .log files depending on server/client communication.
+---
 
-The result is a modular design where gameplay rules, networking, and presentation are separated into distinct layers.
+## Highlights
 
-## Build and Run
+- **One app, two roles.** The same program hosts a match or joins one. Open it on several machines, or several times on one, and play.
+- **Finds games on its own.** Servers on the local network show up in the launcher automatically; you can also join by IP address.
+- **The server is the referee.** Players only send what they press. The server moves everyone, settles every grab and steal, and decides who wins, so nobody can cheat by editing their own copy.
+- **Plays with other teams' games.** Every team in the course built its own version from the same shared rulebook, down to the exact bytes of each message, so a player on this game can join a server written by another team in another language, and the other way around.
+- **Fast and light.** 20 updates a second, with a whole two-player game state fitting in about 50 bytes.
+- **Every message on record.** Each session writes a log of everything sent and received, to see exactly what happened in a match.
 
-From the project root, build and run the application with:
+---
+
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/media/launcher.png" alt="Launcher with player name, server name, IP address and port, host and join buttons, and a list of servers found on the network">
+      <br><sub><b>Launcher.</b> Pick a name, then host a match or join one from the list of servers found on the network.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/media/lobby.png" alt="Host window in the lobby with Ada and Linus connected and a Start Match button">
+      <br><sub><b>Lobby.</b> The host sees who has joined and starts the match when everyone is in.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <img src="docs/media/player-view.png" alt="Ada's own window: she carries the flag inside the circle while Linus closes in, with the controls listed at the bottom">
+      <br><sub><b>A player's view.</b> The camera follows you. Here Ada has the flag and Linus is right on her.</sub>
+    </td>
+    <td valign="top">
+      <img src="docs/media/winner.png" alt="Game over screen announcing Linus as the winner">
+      <br><sub><b>Game over.</b> The first player to carry the flag out of the circle wins.</sub>
+    </td>
+  </tr>
+</table>
+
+---
+
+## How to play
+
+1. Everyone starts just outside the central circle, at a random spot.
+2. Run to the flag in the middle and press **Space** (or **E**) to grab it.
+3. Carry it out of the circle to win.
+4. Anyone within reach of the carrier can press **Space** to steal the flag instantly. There's no cooldown, so it can change hands many times in a few seconds.
+
+| Key | Action |
+| :--- | :--- |
+| **W A S D** or **arrow keys** | Move (up, down, left, right) |
+| **Space** or **E** | Grab or steal the flag |
+| **Esc** | Leave the match |
+
+---
+
+## Quick start
+
+You need [Rust](https://rustup.rs/) 1.85 or newer. On Linux, the graphics library also needs a few system packages:
 
 ```bash
-cargo run
+sudo apt install pkg-config libx11-dev libxi-dev libgl1-mesa-dev libasound2-dev
 ```
 
-The project uses Rust and the following main dependencies:
+Then, from the project folder:
 
-- macroquad for the game window and rendering
-- rand for gameplay-related randomness
+```bash
+cargo run --release
+```
 
-## How to Play
+Start it from the project folder, since the game loads its font from `assets/`.
 
-1. Launch the application and choose whether to host a server or join an existing match.
-2. If you host a server, wait for other players to connect to your session.
-3. Once the match starts, move around the arena and compete to reach the flag.
-4. Pick up the flag, leave the central circle, and return outside it to win the round.
-5. If you are joining a match, follow the server's state and play within the rules defined by the protocol.
+- **To host:** type a server name and click **Host new server**. The host's window shows the whole map and runs the match; click **Start match** once everyone has joined.
+- **To play:** open the game again (on this computer or another one on the same network), type your name, and pick the server from the list on the right, or enter its IP address and click **Direct join**.
 
-## Project Structure
+The game uses TCP port **5000** for the match and UDP port **5001** to find servers, so allow both through the firewall when playing across machines.
 
-The source tree is organized around clear responsibilities:
+---
 
-- src/app: application mode handling and the main runner
-- src/server: server logic, game state updates, and networking
-- src/client: client connection logic and client-side update flow
-- src/protocol: shared protocol structures and message serialization
-- src/gui: rendering, camera management, and overlays
-- src/config: configuration values for the game
-- src/debugger: logs communication between server/client
+## How it works
 
-## Architecture
+```mermaid
+flowchart LR
+    A[Player 1] -- keys pressed --> S((Server))
+    B[Player 2] -- keys pressed --> S
+    C[Player 3] -- keys pressed --> S
+    S -- positions and flag, 20 times a second --> A
+    S -- same update --> B
+    S -- same update --> C
+```
 
-### 1. Main Application
+Players never move themselves. Each window only tells the server which direction is held and when Space is pressed. Twenty times a second the server moves everyone, checks who is close enough to grab or steal the flag, checks whether the carrier has left the circle, and sends the new state to every player. If two players try to steal on the same update, the lower player number wins, so every team's server settles a tie the same way.
 
-The application starts from the main entry point and creates a single runtime object that can switch between launcher, server-host, and client-join modes. This makes the project behave like a unified client application with multiple execution modes rather than a collection of unrelated programs.
+To find a game, the launcher sends a broadcast on the local network, and every server still in its lobby answers with its name and how many players it has.
 
-### 2. Server-oriented game model
+The rules and the exact message format come from the course's shared protocol, [`PRFC-VERSION-3.md`](PRFC-VERSION-3.md) (in Spanish; all versions are in [erickm13/CC8-Protocolo](https://github.com/erickm13/CC8-Protocolo)).
 
-The server is the authority of the match. It owns the official map state, player positions, flag status, and win conditions. Each update cycle advances the simulation, applies movement rules, checks interactions, and broadcasts the latest state to connected clients. This design keeps the game logic centralized and makes the rules easier to reason about.
+---
 
-### 3. Client-side interaction model
+## Project structure
 
-Clients are responsible for presenting the game to the user and sending input intentions to the server. They do not decide the outcome of gameplay on their own; instead, they follow the server's authoritative state. This separation helps keep the experience consistent across different machines and implementations.
+```
+src/
+├── app/        # launcher, host and player screens
+├── server/     # the referee: game rules, updates and connections
+├── client/     # connects to a server, sends keys, receives updates
+├── protocol/   # message format shared by both sides
+├── gui/        # drawing the map, players, camera and overlays
+├── debugger/   # writes every message to logs/
+└── config.rs   # colours, sizes and other settings
+```
 
-### 4. Binary protocol
+Logs are written to `logs/server-<time>.log` and `logs/client-<time>.log`.
 
-The protocol layer is based on [PRFC-VERSION-3.md](PRFC-VERSION-3.md). That specification defines the game rules, the server/client responsibilities, and the binary message layout used by the project. The implementation uses that protocol as the contract for communication between all parties.
+---
 
-The versions of the protocol can be found here: https://github.com/erickm13/CC8-Protocolo
+## Credits
 
-### 5. Rendering and UI
+Made by [@GabGP](https://github.com/GabGP) and [@guillermo-martinez42](https://github.com/guillermo-martinez42) for the course CC8. Built with [macroquad](https://macroquad.rs/). Font: [JetBrains Mono](https://www.jetbrains.com/lp/mono/), under the SIL Open Font License (see `assets/fonts/OFL.txt`).
 
-The graphical layer is responsible for drawing the world, players, UI overlays, and logs. The camera and rendering modules are designed to reflect the game state that arrives from the server, creating a smooth view of the match as it evolves.
-
-### 6. Logging
-
-The logger logs every communication done between server/client and stores the logs in a .log file. separated by server/client for easier debugging.
-
-## Notes
-
-CaptureTheFlag is designed as a teaching-oriented multiplayer game project that emphasizes architecture, networking, and protocol-driven development. Its main purpose is not only to play the game, but also to demonstrate how a real-time client/server system can be organized around a shared specification.
+Released under the [MIT License](LICENSE).

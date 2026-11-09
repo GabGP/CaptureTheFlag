@@ -1,4 +1,4 @@
-<h1 align="center">Capture the Flag</h1>
+<h1 align="center">Capture the Flag <img src="docs/media/ferris_64.gif" height="48" alt="Ferris the crab"></h1>
 
 <p align="center">
   <strong>A real-time multiplayer arena game for the local network, written in Rust.</strong><br>

@@ -77,13 +77,7 @@
 
 ## Quick start
 
-You need [Rust](https://rustup.rs/) 1.85 or newer. On Linux, the graphics library also needs a few system packages:
-
-```bash
-sudo apt install pkg-config libx11-dev libxi-dev libgl1-mesa-dev libasound2-dev
-```
-
-Then, from the project folder:
+You need [Rust](https://rustup.rs/) 1.85 or newer. Then, from the project folder:
 
 ```bash
 cargo run --release
